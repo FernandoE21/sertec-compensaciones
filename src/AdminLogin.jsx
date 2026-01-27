@@ -11,7 +11,7 @@ function AdminLogin() {
   const handleLogin = (e) => {
     e.preventDefault()
     // Validación "Hardcoded" (Sencilla para tu MVP)
-    if (usuario === 'admin' && password === 'admin') {
+    if (usuario === 'admin' && password === 'Cipsa419') {
       const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 })
       Toast.fire({ icon: 'success', title: 'Bienvenido Admin' })
       navigate('/admin-panel') // Te manda al dashboard

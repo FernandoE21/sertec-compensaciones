@@ -12,7 +12,7 @@ body {
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center; /* Centra verticalmente en PC */
+  align-items: center;
   font-family: 'Segoe UI', system-ui, sans-serif;
   background: var(--bg-soft);
 }
@@ -33,7 +33,7 @@ body {
 }
 
 .container-wide {
-    max-width: 1000px; /* Ancho para historial */
+    max-width: 1000px; /* Ancho ampliado para escritorio */
 }
 
 /* --- TÍTULOS --- */
@@ -57,9 +57,9 @@ body {
   border-radius: 20px;
   margin-top: 15px;
   box-shadow: rgba(25, 59, 72, 0.08) 0px 10px 10px -5px;
-  box-sizing: border-box; /* Vital para móviles */
+  box-sizing: border-box;
   font-family: inherit;
-  font-size: 16px; /* 16px evita que el iPhone haga zoom al escribir */
+  font-size: 16px;
   color: #334155;
   transition: all 0.3s ease;
 }
@@ -139,14 +139,14 @@ body {
 .btn-small {
   background: transparent; color: var(--corporate-blue); border: 2px solid var(--corporate-blue);
   padding: 6px 12px; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer;
-  margin-left: auto; white-space: nowrap; /* Evita que el texto se parta */
+  margin-left: auto; white-space: nowrap;
 }
 
-/* --- GRID --- */
+/* --- GRID BASE --- */
 .row { display: flex; gap: 15px; }
 .col { flex: 1; }
 
-/* --- HISTORIAL (ESTILOS AVANZADOS) --- */
+/* --- HISTORIAL --- */
 .header-profile-bar {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0;
@@ -175,11 +175,11 @@ body {
 }
 
 .table-container {
-  overflow-x: auto; /* Permite scroll horizontal en móvil */
+  overflow-x: auto;
   border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-  -webkit-overflow-scrolling: touch; /* Scroll suave en iPhone */
+  -webkit-overflow-scrolling: touch;
 }
-.custom-table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; min-width: 600px; /* Fuerza el ancho mínimo */ }
+.custom-table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; min-width: 600px; }
 .custom-table th { background: var(--corporate-blue); color: white; padding: 12px; text-align: left; }
 .custom-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; color: #334155; }
 .btn-icon { border: none; background: none; cursor: pointer; font-size: 16px; padding: 5px; }
@@ -192,220 +192,440 @@ body {
 }
 .modal-content {
   background: white; padding: 30px; border-radius: 20px; width: 100%; max-width: 500px;
-  max-height: 90vh; overflow-y: auto; /* Scroll si el modal es muy alto */
+  max-height: 90vh; overflow-y: auto;
 }
+
+/* --- WIDGET DE HORARIO ESTÉTICO --- */
+.schedule-widget {
+  width: 100%; display: flex; align-items: center; gap: 15px;
+  background: #f8fafc; border-radius: 12px; padding: 12px 15px;
+  margin-top: 15px; border-left: 4px solid var(--corporate-green);
+  box-sizing: border-box; position: relative; transition: all 0.3s ease;
+}
+
+.schedule-widget:hover { background: white; box-shadow: 0 4px 15px rgba(125, 177, 0, 0.1); }
+.schedule-widget.empty { border-left: 4px solid #cbd5e1; }
+.schedule-icon { font-size: 26px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
+.schedule-details { display: flex; flex-direction: column; flex: 1; }
+.schedule-label { font-size: 10px; font-weight: 800; color: var(--corporate-green); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px; }
+.schedule-time { font-size: 18px; font-weight: 900; color: var(--corporate-blue); line-height: 1; }
+.schedule-status-dot { width: 10px; height: 10px; background-color: var(--corporate-green); border-radius: 50%; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); animation: pulse 2s infinite; }
+
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(125, 177, 0, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(125, 177, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(125, 177, 0, 0); } }
+
+/* --- TOOLTIP SEMANAL --- */
+.hover-trigger { cursor: help; }
+.weekly-tooltip { position: absolute; top: 100%; left: 0; width: 100%; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(25, 59, 72, 0.2); border: 1px solid #e2e8f0; margin-top: 10px; z-index: 100; opacity: 0; visibility: hidden; transform: translateY(-5px); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; }
+.hover-trigger:hover .weekly-tooltip { opacity: 1; visibility: visible; transform: translateY(0); }
+.weekly-header { background: var(--corporate-blue); color: white; padding: 8px 15px; border-radius: 11px 11px 0 0; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+.weekly-list { list-style: none; margin: 0; padding: 0; }
+.weekly-list li { display: flex; justify-content: space-between; padding: 8px 15px; font-size: 13px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+.weekly-list li:last-child { border-bottom: none; }
+.weekly-list li.today { background: #ecfccb; color: #1a2e05; font-weight: bold; border-left: 3px solid var(--corporate-green); }
+.day-name { font-weight: 600; }
+.day-time { font-family: monospace; font-size: 12px; }
+
+/* --- MEJORAS DEL FORMULARIO (GRID HORIZONTAL PC) --- */
+.section-title {
+  font-size: 12px;
+  color: var(--corporate-blue);
+  font-weight: 800;
+  text-transform: uppercase;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 8px;
+  margin-top: 25px;
+  margin-bottom: 15px;
+  letter-spacing: 0.5px;
+}
+
+.form-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  align-items: end; /* Alinea los inputs abajo */
+}
+
+/* Utilidades de columnas */
+.span-2 { grid-column: span 2; }
+.span-4 { grid-column: span 4; }
+
+/* Ajuste fino para labels dentro del grid */
+.form-grid-4 .label { margin-top: 0; }
+.form-grid-4 .input { margin-top: 8px; }
 
 /* =========================================
    📱 MEDIA QUERIES (MODO MÓVIL)
    ========================================= */
 @media (max-width: 768px) {
   body {
-    align-items: flex-start; /* En móvil empieza arriba, no centrado */
+    align-items: flex-start;
     padding: 10px;
   }
 
   .container {
     margin: 10px 0;
-    padding: 20px; /* Menos relleno para ganar espacio */
+    padding: 20px;
     border-width: 2px;
     border-radius: 25px;
   }
 
-  /* El buscador en columna */
   .input-group {
     flex-direction: column;
-    align-items: stretch; /* Botón ancho completo */
+    align-items: stretch;
   }
   .search-btn { width: 100%; margin-top: 10px; }
 
-  /* Grid de fechas (Inicio/Fin) uno abajo del otro */
-  .row {
-    flex-direction: column;
-    gap: 0;
-  }
+  .row { flex-direction: column; gap: 0; }
   
-  /* Tarjeta de empleado simplificada */
-  .employee-card {
-    flex-direction: column;
-    text-align: center;
-    gap: 10px;
-  }
+  .employee-card { flex-direction: column; text-align: center; gap: 10px; }
   .btn-small { margin: 5px auto 0; width: 100%; text-align: center; }
 
-  /* HISTORIAL EN MÓVIL */
-  .header-profile-bar {
-    flex-direction: column;
-    text-align: center;
-    gap: 15px;
-  }
+  .header-profile-bar { flex-direction: column; text-align: center; gap: 15px; }
   .profile-section { flex-direction: column; gap: 10px; }
   .btn-back { width: 100%; padding: 10px; background: #f1f5f9; border-radius: 10px; margin-top: 10px; }
 
-  /* Filtros apilados */
-  .filters-bar {
-    flex-direction: column;
-    gap: 15px;
-  }
-  .filters-inputs {
-    flex-direction: column;
-    width: 100%;
-  }
+  .filters-bar { flex-direction: column; gap: 15px; }
+  .filters-inputs { flex-direction: column; width: 100%; }
   .btn-excel { width: 100%; padding: 15px; }
 
-  /* Ajuste de fuentes */
   .heading { font-size: 22px; }
   .profile-name { font-size: 20px; }
+
+  /* HACER QUE EL GRID DE 4 COLUMNAS SEA 1 SOLA EN MÓVIL */
+  .form-grid-4 {
+    grid-template-columns: 1fr;
+  }
+  .span-2, .span-4 {
+    grid-column: span 1;
+  }
 }
 
-
-/* --- WIDGET DE HORARIO ESTÉTICO --- */
-.schedule-widget {
-  width: 100%;
+/* --- BOTÓN DE ACCIÓN (ESTILO CIRCULAR) --- */
+.btn-float {
+  /* ESTADO NORMAL (Escritorio): Posición estática (en el flujo normal) */
+  position: relative; 
+  /* Lo alineamos a la derecha usando margen automático a la izquierda */
+  margin-left: auto; 
+  margin-top: 20px; /* Separación de la tabla */
+  
+  /* Forma y Estilo (Mantenemos lo que ya te gustaba) */
+  width: 55px;
+  height: 55px;
+  padding: 0;
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+  background: linear-gradient(45deg, #7db100, #8bc34a);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(125, 177, 0, 0.4);
+  
+  /* Centrado del ícono */
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 15px;
-  background: #f8fafc; /* Gris super claro */
-  border-radius: 12px;
-  padding: 12px 15px;
-  margin-top: 15px;
-  border-left: 4px solid var(--corporate-green); /* Acento verde corporativo */
-  box-sizing: border-box;
-  position: relative;
+  cursor: pointer;
+  z-index: 10;
   transition: all 0.3s ease;
 }
 
-.schedule-widget:hover {
-  background: white;
-  box-shadow: 0 4px 15px rgba(125, 177, 0, 0.1);
+.btn-float:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 20px rgba(125, 177, 0, 0.5);
 }
 
-.schedule-widget.empty {
-  border-left: 4px solid #cbd5e1;
+.btn-float:active {
+  transform: scale(0.95);
 }
 
-.schedule-icon {
-  font-size: 26px;
-  line-height: 1;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-}
-
-.schedule-details {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.schedule-label {
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--corporate-green);
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 2px;
-}
-
-.schedule-time {
-  font-size: 18px;
-  font-weight: 900;
-  color: var(--corporate-blue); /* Azul corporativo para la hora */
-  line-height: 1;
-}
-
-/* Punto indicador de estado "Activo" (Parpadeante) */
-.schedule-status-dot {
-  width: 10px;
-  height: 10px;
-  background-color: var(--corporate-green);
-  border-radius: 50%;
+/* Tooltip (Texto al pasar el mouse) */
+.btn-float::after {
+  content: 'Nueva Solicitud';
   position: absolute;
-  right: 15px;
+  /* Ajustamos la posición del tooltip relativo al botón */
+  right: 110%; /* A la izquierda del botón */
   top: 50%;
   transform: translateY(-50%);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(125, 177, 0, 0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(125, 177, 0, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(125, 177, 0, 0); }
-}
-
-/* --- MAGIA DEL HOVER (TOOLTIP SEMANAL) --- */
-.hover-trigger {
-  cursor: help; /* Cambia el cursor para indicar que se puede interactuar */
-}
-
-.weekly-tooltip {
-  position: absolute;
-  top: 100%; /* Aparece justo debajo del widget */
-  left: 0;
-  width: 100%;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(25, 59, 72, 0.2);
-  border: 1px solid #e2e8f0;
-  margin-top: 10px;
-  z-index: 100; /* Asegura que flote por encima del formulario */
   
-  /* Estados de visibilidad (Animación de entrada) */
+  background: #193b48;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
   opacity: 0;
   visibility: hidden;
-  transform: translateY(-5px);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: none; /* Evita clics fantasma */
+  transition: all 0.2s;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
-/* Al pasar el mouse por el widget, aparece el tooltip */
-.hover-trigger:hover .weekly-tooltip {
+.btn-float:hover::after {
   opacity: 1;
   visibility: visible;
-  transform: translateY(0);
 }
 
-/* Estilos de la lista interna */
-.weekly-header {
-  background: var(--corporate-blue);
-  color: white;
-  padding: 8px 15px;
-  border-radius: 11px 11px 0 0;
-  font-size: 11px;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+/* --- MÓVIL: Mantenemos el botón fijo para facilitar el uso --- */
+@media (max-width: 768px) {
+  .btn-float {
+    position: fixed; /* En celular SÍ flota para estar a mano */
+    bottom: 20px;
+    right: 20px;
+    margin-top: 0; /* Reseteamos margen */
+    z-index: 1000;
+  }
+  
+  .btn-float::after {
+    display: none;
+  }
+  
+  /* IMPORTANTE: Añadimos espacio al final del contenedor en móvil 
+     para que el botón fijo no tape el último registro al hacer scroll */
+  .container {
+    padding-bottom: 80px; 
+  }
 }
 
-.weekly-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.weekly-list li {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 15px;
+/* --- AVISO / TOOLTIP INFORMATIVO --- */
+.info-banner {
+  background-color: #fffbeb; /* Fondo amarillo muy suave */
+  border-left: 4px solid #f59e0b; /* Borde naranja/ámbar */
+  color: #92400e;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
   font-size: 13px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #334155;
+  line-height: 1.5;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
-.weekly-list li:last-child {
-  border-bottom: none;
+.info-banner strong {
+  color: #b45309;
+  font-weight: 800;
 }
 
-/* Resaltar el día de HOY en la lista */
-.weekly-list li.today {
-  background: #ecfccb;
-  color: #1a2e05;
-  font-weight: bold;
-  border-left: 3px solid var(--corporate-green);
+.info-icon {
+  font-size: 18px;
+  margin-top: -2px; /* Ajuste visual */
 }
 
-.day-name {
-  font-weight: 600;
+/* En móvil que se ajuste bien */
+@media (max-width: 768px) {
+  .info-banner {
+    font-size: 12px;
+  }
 }
 
-.day-time {
-  font-family: monospace; /* Para que los números se alineen perfecto */
-  font-size: 12px;
+
+/* --- ESTILOS PARA TABLA ADMIN --- */
+.avatar-table {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid white;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  vertical-align: middle;
+  margin-right: 10px;
+}
+
+.employee-cell {
+  display: flex;
+  align-items: center;
+}
+
+/* Badges de Estado */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-pendiente { background: #fef3c7; color: #d97706; } /* Amarillo */
+.status-aprobado { background: #dcfce7; color: #166534; }  /* Verde */
+.status-rechazado { background: #fee2e2; color: #991b1b; } /* Rojo */
+
+/* --- BOTONES DE ACCIÓN (ADMIN) --- */
+.btn-action-ok, .btn-action-no {
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: transform 0.2s;
+}
+
+.btn-action-ok {
+  background-color: #dcfce7; /* Verde claro */
+  border: 1px solid #86efac;
+}
+
+.btn-action-ok:hover {
+  background-color: #bbf7d0;
+  transform: scale(1.1);
+}
+
+.btn-action-no {
+  background-color: #fee2e2; /* Rojo claro */
+  border: 1px solid #fca5a5;
+}
+
+.btn-action-no:hover {
+  background-color: #fecaca;
+  transform: scale(1.1);
+}
+
+/* Botón para volver a estado Pendiente */
+.btn-action-reset {
+  background-color: #f3f4f6; /* Gris claro */
+  border: 1px solid #d1d5db;
+  color: #4b5563;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.btn-action-reset:hover {
+  background-color: #e5e7eb;
+  transform: scale(1.1);
+  color: #111827;
+  border-color: #9ca3af;
+}
+
+/* --- ESTADO DESHABILITADO (COLOR PLOMO) --- */
+.btn-action-ok:disabled,
+.btn-action-no:disabled,
+.btn-action-reset:disabled {
+  background-color: #e5e7eb; /* Gris claro (Plomo) */
+  border-color: #d1d5db;     /* Borde gris */
+  filter: grayscale(100%);   /* Le quita el color al emoji también */
+  opacity: 0.5;              /* Lo hace medio transparente */
+  cursor: not-allowed;       /* Muestra el símbolo de prohibido al pasar el mouse */
+  transform: none !important; /* Evita que crezca al pasar el mouse */
+  box-shadow: none;
+}
+
+/* --- SELECTOR DE ESTADO (Clean UI) --- */
+.select-status {
+  padding: 6px 12px;
+  border-radius: 20px; /* Bordes muy redondos */
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  cursor: pointer;
+  outline: none;
+  text-align: center;
+  appearance: none; /* Quita la flecha fea por defecto del navegador */
+  -webkit-appearance: none;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+  width: 110px; /* Ancho fijo para que no baile la tabla */
+}
+
+/* Colores según el estado */
+.bg-pendiente {
+  background-color: #fffbeb; 
+  color: #d97706; 
+  border-color: #fcd34d;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23d97706%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 8px;
+  padding-right: 25px; /* Espacio para la flechita */
+}
+
+.bg-aprobado {
+  background-color: #dcfce7; 
+  color: #15803d; 
+  border-color: #86efac;
+}
+
+.bg-rechazado {
+  background-color: #fee2e2; 
+  color: #b91c1c; 
+  border-color: #fca5a5;
+}
+
+.select-status:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+
+/* --- TARJETA DE BALANCE DE HORAS --- */
+/* --- BALANCE SPLIT (DOS TARJETAS) --- */
+.balance-grid {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.balance-card {
+  flex: 1; /* Ambas ocupan el mismo ancho */
+  background: white;
+  border-radius: 15px;
+  padding: 15px 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decoración lateral de color */
+.card-green { border-left: 5px solid #22c55e; }
+.card-red { border-left: 5px solid #ef4444; }
+
+.balance-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.5px;
+  margin-bottom: 5px;
+}
+
+.balance-amount {
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.text-green { color: #15803d; }
+.text-red { color: #b91c1c; }
+
+/* Icono de fondo sutil */
+.balance-icon-bg {
+  position: absolute;
+  right: 10px;
+  bottom: -5px;
+  font-size: 60px;
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+/* Móvil: Uno debajo del otro */
+@media (max-width: 768px) {
+  .balance-grid {
+    flex-direction: column;
+  }
 }
