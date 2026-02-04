@@ -629,3 +629,177 @@ body {
     flex-direction: column;
   }
 }
+
+/* --- TARJETA DE BALANCE NETO (AZUL) --- */
+.card-blue { border-left: 5px solid #3b82f6; } /* Azul */
+.text-blue { color: #2563eb; }
+
+/* --- BOTÓN LIMPIAR FILTROS --- */
+.btn-clear {
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+  height: 38px; /* Para igualar altura de inputs */
+}
+
+.btn-clear:hover {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #94a3b8;
+}
+
+/* Ajuste para que la columna ID sea pequeña */
+.col-id {
+  width: 50px;
+  text-align: center;
+  font-weight: bold;
+  color: #64748b;
+}
+
+/* --- BOTÓN DE VER PERFIL (Sutil y Profesional) --- */
+.btn-view-profile {
+  background-color: transparent;
+  border: 1px solid #cbd5e1; /* Gris suave */
+  color: #475569;           /* Texto gris oscuro */
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-view-profile:hover {
+  border-color: #6366f1;    /* Borde índigo al pasar el mouse */
+  color: #6366f1;           /* Texto índigo */
+  background-color: #e0e7ff; /* Fondo muy suave */
+  transform: translateY(-1px);
+}
+
+/* --- ESTILOS DEL MODAL FLOTANTE --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Fondo oscuro transparente */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px); /* Efecto borroso elegante */
+}
+
+.modal-content {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px; /* Ancho máximo */
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  position: relative;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 18px;
+}
+
+.close-modal {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.detail-row {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+/* Botón Info en la tabla */
+.btn-icon.info {
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+.btn-icon.info:hover {
+  background-color: #bae6fd;
+}
+
+/* --- INPUT CON OJITO (PASSWORD) --- */
+.password-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrapper .input {
+  width: 100%;
+  padding-right: 40px; /* Espacio para que el texto no tape el ojo */
+}
+
+.btn-eye {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-40%); /* Ajuste fino vertical */
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.btn-eye:hover {
+  color: #1e293b;
+}
