@@ -1,0 +1,49 @@
+# Portal de Compensaciones - CIPSA
+
+> Sistema web de gestión de horas extras y compensaciones laborales desarrollado con React 19 + Vite y Supabase como backend. Permite a empleados registrar compensaciones (traslados, sobretiempos, salidas anticipadas) y a administradores aprobar/rechazar solicitudes. Desplegable en contenedores LXC de Proxmox o plataformas cloud.
+
+## Contexto importante
+
+- **Stack:** React 19.2.0 + Vite 7.2.4, Supabase (PostgreSQL + Storage + RPC), React Router DOM 7.12.0
+- **Autenticación:** Dual (empleados: código+DNI, admin: hardcoded usuario/contraseña)
+- **PWA:** Configurado con vite-plugin-pwa para uso offline
+- **Deploy:** Script automatizado `deploy.sh` para LXC/Proxmox con Nginx
+- **Base de datos:** Tablas `personal` y `registro_horas` en Supabase PostgreSQL
+
+## Para IAs (EMPEZAR AQUÍ)
+
+- [AI-CONTEXT.md](AI-CONTEXT.md): Párrafos de inicio/final para ponerse al día rápidamente
+- [CHANGELOG.md](CHANGELOG.md): Registro de cambios del proyecto (leer antes de continuar)
+
+## Documentación principal
+
+- [MCP.md](MCP.md): Model Context Protocol - Contexto inicial y estado actual del proyecto
+- [skills.md](skills.md): Capacidades completas del sistema (autenticación, gestión de registros, exportación, UI/UX)
+- [agents.md](agents.md): Roles y permisos (Empleado, Administrador, Sistema) con matriz de autorización
+- [architecture.md](architecture.md): Modelos de datos, flujos de trabajo, arquitectura técnica y escalabilidad
+- [RESUMEN-INSTALACION.md](RESUMEN-INSTALACION.md): Guía rápida de instalación local, deploy LXC y cloud
+
+## Código fuente
+
+- [src/main.jsx](src/main.jsx): Entry point y configuración de rutas
+- [src/App.jsx](src/App.jsx): Login de empleados
+- [src/AdminLogin.jsx](src/AdminLogin.jsx): Login de administradores
+- [src/UserRecords.jsx](src/UserRecords.jsx): Vista de registros para empleados
+- [src/AdminDashboard.jsx](src/AdminDashboard.jsx): Panel administrativo - directorio de personal
+- [src/AdminUserRecords.jsx](src/AdminUserRecords.jsx): Gestión de registros por administrador
+- [src/NewRequest.jsx](src/NewRequest.jsx): Formulario para crear/editar solicitudes
+- [src/supabaseClient.js](src/supabaseClient.js): Configuración del cliente Supabase
+
+## Configuración y Deploy
+
+- [deploy.sh](deploy.sh): Script automatizado de instalación/despliegue para LXC containers (acceso local)
+- [CLOUDFLARE-PAGES-SIMPLE.md](CLOUDFLARE-PAGES-SIMPLE.md): Guía simple para deploy público SIN SERVIDOR (GitHub + Cloudflare Pages, 100% gratis)
+- [CLOUDFLARE-DEPLOY.md](CLOUDFLARE-DEPLOY.md): Guía completa de todas las opciones Cloudflare (Pages, Tunnel, Proxy)
+- [vite.config.js](vite.config.js): Configuración de Vite y PWA
+- [package.json](package.json): Dependencias y scripts del proyecto
+
+## Optional
+
+- [index.html](index.html): HTML base de la SPA
+- [src/App.css](src/App.css): Estilos globales del proyecto
+- [src/index.css](src/index.css): Reset CSS y configuración base

@@ -51,8 +51,9 @@ fi
 install_dependencies() {
     print_status "Instalando dependencias del sistema..."
     
+    export DEBIAN_FRONTEND=noninteractive
     apt update
-    apt install -y curl wget git nano nginx ufw
+    apt install -y curl wget git nano nginx ufw build-essential
     
     print_success "Dependencias instaladas"
 }
@@ -72,16 +73,37 @@ install_nodejs() {
     # Instalar nvm
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
     
+    # Cargar nvm en la sesión actual
     export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+    
+    # Verificar que nvm esté disponible
+    if ! command -v nvm &> /dev/null; then
+        print_error "nvm no se instaló correctamente"
+        exit 1
+    fi
     
     # Instalar Node.js LTS
     nvm install 20
     nvm use 20
     nvm alias default 20
     
+    # Verificar instalación
+    if ! command -v node &> /dev/null; then
+        print_error "Node.js no se instaló correctamente"
+        exit 1
+    fi
+    
+    if ! command -v npm &> /dev/null; then
+        print_error "npm no se instaló correctamente"
+        exit 1
+    fi
+    
     NODE_VERSION=$(node -v)
+    NPM_VERSION=$(npm -v)
     print_success "Node.js instalado: $NODE_VERSION"
+    print_success "npm instalado: $NPM_VERSION"
 }
 
 # Función para clonar repositorio
@@ -111,7 +133,7 @@ clone_repository() {
 build_application() {
     print_status "Compilando aplicación..."
     
-    cd "$APP_DIR"
+    cd "$APP_DIR" || { print_error "No se pudo acceder a $APP_DIR"; exit 1; }
     
     # Crear backup si existe dist
     if [ -d "dist" ]; then
@@ -121,13 +143,30 @@ build_application() {
         print_success "Backup creado: dist.backup.$TIMESTAMP"
     fi
     
+    # Cargar nvm si existe
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    
+    # Verificar que npm esté disponible
+    if ! command -v npm &> /dev/null; then
+        print_error "npm no está disponible. Instala Node.js primero."
+        exit 1
+    fi
+    
     # Instalar dependencias
     print_status "Instalando dependencias npm..."
-    npm install
+    if ! npm install; then
+        print_error "Falló la instalación de dependencias npm"
+        exit 1
+    fi
+    print_success "Dependencias instaladas correctamente"
     
     # Compilar
     print_status "Ejecutando build de producción..."
-    npm run build
+    if ! npm run build; then
+        print_error "Falló la compilación del proyecto"
+        exit 1
+    fi
     
     if [ ! -d "dist" ]; then
         print_error "Falló la compilación - directorio dist no encontrado"
@@ -227,16 +266,29 @@ set -e
 
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+RED='\033[0;31m'
 NC='\033[0m'
 
 echo -e "${BLUE}🔄 Actualizando Portal de Compensaciones...${NC}"
+
+# Cargar nvm si existe
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# Verificar que npm esté disponible
+if ! command -v npm &> /dev/null; then
+    echo -e "${RED}✗${NC} npm no está disponible"
+    exit 1
+fi
 
 cd /var/www/compensaciones
 
 # Backup
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-cp -r dist dist.backup.$TIMESTAMP
-echo -e "${GREEN}✓${NC} Backup creado"
+if [ -d "dist" ]; then
+    cp -r dist dist.backup.$TIMESTAMP
+    echo -e "${GREEN}✓${NC} Backup creado"
+fi
 
 # Actualizar código
 git pull origin main
@@ -285,6 +337,17 @@ show_final_info() {
     echo "🌐 Accede a tu aplicación en:"
     echo "   http://$IP_ADDRESS"
     echo ""
+    echo "   ⚠️  Esto es solo acceso LOCAL (tu red privada)"
+    echo ""
+    
+    echo "🌍 ¿Quieres hacerlo PÚBLICO en internet?"
+    echo "   Consulta: CLOUDFLARE-DEPLOY.md"
+    echo ""
+    echo "   Opciones rápidas:"
+    echo "   • Cloudflare Pages (gratis, 5 min): npm run build + subir a GitHub"
+    echo "   • Cloudflare Tunnel (gratis, sin IP pública): cloudflared tunnel create"
+    echo "   • Dominio personalizado: Configura DNS en Cloudflare"
+    echo ""
     
     echo "🔄 Para actualizar la aplicación en el futuro:"
     echo "   /root/update-compensaciones.sh"
@@ -322,6 +385,11 @@ show_menu() {
             show_final_info
             ;;
         2)
+            print_status "Compilando aplicación..."
+            # Cargar nvm
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            
             build_application
             systemctl reload nginx
             print_success "Aplicación compilada y Nginx recargado"
@@ -331,7 +399,12 @@ show_menu() {
             print_success "Nginx configurado"
             ;;
         4)
-            cd "$APP_DIR"
+            print_status "Actualizando aplicación desde Git..."
+            # Cargar nvm
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            
+            cd "$APP_DIR" || { print_error "No se pudo acceder a $APP_DIR"; exit 1; }
             git pull origin main
             build_application
             systemctl reload nginx
