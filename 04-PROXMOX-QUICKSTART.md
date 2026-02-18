@@ -5,11 +5,13 @@
 ### 1️⃣ Crear LXC Container en Proxmox
 
 **Especificaciones mínimas:**
-- Template: `ubuntu-22.04-standard`
+- Template: `ubuntu-22.04-standard` o `debian-12-standard` ✅
 - Disco: `8 GB`
 - RAM: `1 GB`
 - CPU: `1 core`
 - Network: Bridge con IP estática
+
+**Nota:** ✅ **Debian 12 funciona perfectamente**. Si ya tienes `debian-12-standard_12.12-1_amd64.tar.zst`, úsalo sin problemas.
 
 ### 2️⃣ Ejecutar Script de Instalación
 

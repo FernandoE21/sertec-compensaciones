@@ -44,6 +44,11 @@ URL: https://tu-app.pages.dev
    → Comandos útiles
    → Consulta rápida
 
+💡 NUEVO: DEBIAN-12-COMPATIBLE.md ← ¿TIENES DEBIAN EN PROXMOX?
+   → SÍ, Debian 12 funciona perfectamente ✅
+   → No necesitas Ubuntu
+   → Instrucciones específicas para Debian
+
 ┌───────────────────────────────────────────────────────────────────┐
 │ 🔀 ENTENDER GIT Y RAMAS                                           │
 └───────────────────────────────────────────────────────────────────┘

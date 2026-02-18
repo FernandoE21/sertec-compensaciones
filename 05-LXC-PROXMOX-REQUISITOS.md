@@ -15,10 +15,12 @@ Esta rama contiene toda la documentación de despliegue sin afectar el código o
 ### 📋 Especificaciones del Container
 
 ```yaml
-Sistema Operativo: Ubuntu 22.04 LTS (template)
+Sistema Operativo: Ubuntu 22.04 LTS o Debian 12 (ambos compatibles)
 Tipo: LXC Container (NO VM)
 ID Container: [Asignar según tu Proxmox]
 ```
+
+**Nota:** ✅ **Debian 12 es totalmente compatible**. Si ya tienes `debian-12-standard` en tu Proxmox, úsalo sin problemas. Ver `DEBIAN-12-COMPATIBLE.md` para más detalles.
 
 ### 💾 Recursos Recomendados
 
@@ -59,7 +61,9 @@ Snapshot:   Antes de cambios
 
 ## 🖥️ Crear el LXC desde Proxmox Web UI
 
-### Paso 1: Descargar Template Ubuntu
+### Paso 1: Descargar Template (si no lo tienes)
+
+#### Opción A: Ubuntu 22.04 (recomendado para tutoriales)
 
 ```bash
 # Desde shell de Proxmox (nodo)
@@ -67,6 +71,17 @@ pveam update
 pveam available | grep ubuntu
 pveam download local ubuntu-22.04-standard_22.04-1_amd64.tar.zst
 ```
+
+#### Opción B: Debian 12 (igualmente válido)
+
+```bash
+# Si ya tienes debian-12-standard, ¡úsalo!
+pveam update
+pveam available | grep debian
+pveam download local debian-12-standard_12.12-1_amd64.tar.zst
+```
+
+**✅ Ambos funcionan perfectamente.** Si ya tienes Debian 12, no necesitas descargar Ubuntu.
 
 ### Paso 2: Crear Container desde Web UI
 
@@ -86,6 +101,10 @@ pveam download local ubuntu-22.04-standard_22.04-1_amd64.tar.zst
    ```
    Storage:       local
    Template:      ubuntu-22.04-standard_22.04-1_amd64.tar.zst
+                  O
+                  debian-12-standard_12.12-1_amd64.tar.zst
+   ```
+   **Usa el que tengas disponible.**
    ```
 
 4. **Disks**
