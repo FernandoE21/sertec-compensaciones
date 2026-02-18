@@ -44,7 +44,7 @@ npm run lint
 
 ```bash
 # En tu LXC container de Proxmox
-curl -o deploy.sh https://raw.githubusercontent.com/FernandoE21/compensaciones/main/deploy
+curl -o deploy.sh https://raw.githubusercontent.com/FernandoE21/compensaciones/main/deploy.sh
 chmod +x deploy.sh
 ./deploy.sh
 ```

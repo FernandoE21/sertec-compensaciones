@@ -18,7 +18,7 @@
 pct enter [ID_CONTAINER]
 
 # Descargar y ejecutar el script de deploy
-curl -o deploy.sh https://raw.githubusercontent.com/FernandoE21/compensaciones/main/deploy
+curl -o deploy.sh https://raw.githubusercontent.com/FernandoE21/compensaciones/main/deploy.sh
 chmod +x deploy.sh
 ./deploy.sh
 ```
