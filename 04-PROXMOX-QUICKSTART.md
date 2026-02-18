@@ -65,7 +65,7 @@ Para información detallada sobre:
 - Troubleshooting
 - Monitoreo y logs
 
-👉 Lee el archivo [`DEPLOYMENT.md`](./DEPLOYMENT.md)
+👉 Lee el archivo [`08-DEPLOYMENT.md`](./08-DEPLOYMENT.md)
 
 ---
 
@@ -104,7 +104,7 @@ Para información detallada sobre:
 
 **Conclusión:** Para una aplicación React + Supabase, LXC es 4x más eficiente.
 
-Ver análisis completo en [`DEPLOYMENT.md`](./DEPLOYMENT.md)
+Ver análisis completo en [`08-DEPLOYMENT.md`](./08-DEPLOYMENT.md)
 
 ---
 
@@ -132,7 +132,7 @@ ufw status
 
 ## 📞 Soporte
 
-- 📖 Documentación completa: [`DEPLOYMENT.md`](./DEPLOYMENT.md)
+- 📖 Documentación completa: [`08-DEPLOYMENT.md`](./08-DEPLOYMENT.md)
 - 🐛 Issues: [GitHub Issues](https://github.com/FernandoE21/compensaciones/issues)
 - 📧 Contacto: [Agregar email de soporte]
 

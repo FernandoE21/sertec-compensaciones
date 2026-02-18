@@ -413,9 +413,9 @@ pct snapshot 100 pre-update --description "Antes de actualización"
 ## 🎓 Recursos Adicionales
 
 ### Documentación en este Repositorio
-- **DEPLOYMENT.md**: Guía completa de despliegue
-- **PROXMOX-QUICKSTART.md**: Inicio rápido
-- **LXC-VS-VM-ANALYSIS.md**: Análisis técnico detallado
+- **08-DEPLOYMENT.md**: Guía completa de despliegue
+- **04-PROXMOX-QUICKSTART.md**: Inicio rápido
+- **09-LXC-VS-VM-ANALYSIS.md**: Análisis técnico detallado
 - **GIT-WORKFLOW-EXPLICACION.md**: Explicación de Git
 
 ### Enlaces Útiles

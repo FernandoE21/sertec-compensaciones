@@ -490,6 +490,6 @@ Perfecto para:
 
 **¿Próximo paso?**
 
-Una vez que hayas probado en Cloudflare Pages y todo funcione bien, puedes desplegarlo también en tu servidor Proxmox para producción interna siguiendo la guía **PROXMOX-QUICKSTART.md**.
+Una vez que hayas probado en Cloudflare Pages y todo funcione bien, puedes desplegarlo también en tu servidor Proxmox para producción interna siguiendo la guía **04-PROXMOX-QUICKSTART.md**.
 
 **¡Disfruta de tu despliegue rápido! 🚀**

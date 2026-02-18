@@ -51,8 +51,8 @@ chmod +x deploy.sh
 
 ### 📚 Documentación de Despliegue
 
-- **[Guía Rápida Proxmox](./PROXMOX-QUICKSTART.md)** - Setup en 5 minutos
-- **[Guía Completa de Despliegue](./DEPLOYMENT.md)** - Análisis LXC vs VM, configuración detallada
+- **[Guía Rápida Proxmox](./04-PROXMOX-QUICKSTART.md)** - Setup en 5 minutos
+- **[Guía Completa de Despliegue](./08-DEPLOYMENT.md)** - Análisis LXC vs VM, configuración detallada
 
 **¿LXC o VM?** → **LXC es la opción recomendada** (4x más eficiente para apps React)
 
@@ -81,5 +81,5 @@ La aplicación usa Supabase como backend. Verifica las credenciales en `src/supa
 
 ## 📞 Soporte
 
-- 📖 [Documentación de despliegue](./DEPLOYMENT.md)
+- 📖 [Documentación de despliegue](./08-DEPLOYMENT.md)
 - 🐛 [Reportar un problema](https://github.com/FernandoE21/compensaciones/issues)

@@ -11,7 +11,7 @@ Esta guía te ayuda a navegar toda la documentación creada en el orden correcto
 ### **Para Ti - Orden de Lectura Recomendado:**
 
 ```
-INICIO AQUÍ → 1. GUIA-DE-INICIO.md (este archivo)
+INICIO AQUÍ → 1. 02-GUIA-DE-INICIO.md (este archivo)
               2. README.md
               3. Según tu objetivo:
                  - Despliegue rápido → Ver sección "Despliegue Rápido"
@@ -28,7 +28,7 @@ INICIO AQUÍ → 1. GUIA-DE-INICIO.md (este archivo)
 **Opción A: Cloudflare Pages (RECOMENDADO para pruebas)** ⚡
 ```
 Orden de lectura:
-1. 📄 CLOUDFLARE-PAGES-DEPLOY.md ← LEE ESTO PRIMERO
+1. 📄 03-CLOUDFLARE-PAGES-DEPLOY.md ← LEE ESTO PRIMERO
    → Despliegue en 5 minutos
    → Gratis
    → URL pública automática
@@ -53,26 +53,26 @@ También gratis y rápido
 
 ```
 Orden de lectura:
-1. 📄 PROXMOX-QUICKSTART.md ← EMPIEZA AQUÍ
+1. 📄 04-PROXMOX-QUICKSTART.md ← EMPIEZA AQUÍ
    → Resumen rápido
    → 10 minutos de lectura
 
-2. 📄 LXC-PROXMOX-REQUISITOS.md ← GUÍA DETALLADA
+2. 📄 05-LXC-PROXMOX-REQUISITOS.md ← GUÍA DETALLADA
    → Configuración paso a paso
    → Requerimientos exactos
    → Troubleshooting
 
-3. 📄 REFERENCIA-RAPIDA-LXC.txt ← REFERENCIA VISUAL
+3. 📄 06-REFERENCIA-RAPIDA-LXC.txt ← REFERENCIA VISUAL
    → Comandos rápidos
    → Checklist
    → Para consultas rápidas
 
-4. 📄 DEPLOYMENT.md ← GUÍA COMPLETA
+4. 📄 08-DEPLOYMENT.md ← GUÍA COMPLETA
    → Configuración avanzada
    → Nginx, SSL, seguridad
    → Solo si necesitas más detalles
 
-5. 📄 LXC-VS-VM-ANALYSIS.md ← ANÁLISIS TÉCNICO (OPCIONAL)
+5. 📄 09-LXC-VS-VM-ANALYSIS.md ← ANÁLISIS TÉCNICO (OPCIONAL)
    → Solo si quieres entender el "por qué"
    → Benchmarks y comparaciones
 ```
@@ -89,7 +89,7 @@ Ideal para: Producción interna, control total
 
 ```
 Orden de lectura:
-1. 📄 GIT-WORKFLOW-EXPLICACION.md ← LEE ESTO
+1. 📄 07-GIT-WORKFLOW-EXPLICACION.md ← LEE ESTO
    → Explica la rama separada
    → Cómo funcionan los cambios
    → Garantías de seguridad
@@ -111,32 +111,32 @@ Ideal para: Entender seguridad de los cambios
    → Tecnologías usadas
    → Estructura básica
 
-2. 📄 GIT-WORKFLOW-EXPLICACION.md (10 min)
+2. 📄 07-GIT-WORKFLOW-EXPLICACION.md (10 min)
    → Entender la rama separada
    → Seguridad de cambios
 
-3. 📄 CLOUDFLARE-PAGES-DEPLOY.md (10 min)
+3. 📄 03-CLOUDFLARE-PAGES-DEPLOY.md (10 min)
    → Despliegue rápido para pruebas
    → Compartir con equipo
 
-4. 📄 PROXMOX-QUICKSTART.md (10 min)
+4. 📄 04-PROXMOX-QUICKSTART.md (10 min)
    → Resumen de despliegue en servidor
    → Decisión LXC vs VM
 
-5. 📄 LXC-PROXMOX-REQUISITOS.md (20 min)
+5. 📄 05-LXC-PROXMOX-REQUISITOS.md (20 min)
    → Guía completa de configuración
    → Paso a paso detallado
 
-6. 📄 REFERENCIA-RAPIDA-LXC.txt (5 min)
+6. 📄 06-REFERENCIA-RAPIDA-LXC.txt (5 min)
    → Referencia visual rápida
    → Comandos útiles
 
-7. 📄 DEPLOYMENT.md (30 min)
+7. 📄 08-DEPLOYMENT.md (30 min)
    → Configuración avanzada
    → Nginx, SSL, seguridad
    → Troubleshooting
 
-8. 📄 LXC-VS-VM-ANALYSIS.md (20 min)
+8. 📄 09-LXC-VS-VM-ANALYSIS.md (20 min)
    → Análisis técnico profundo
    → Benchmarks
    → TCO (Total Cost of Ownership)
@@ -156,15 +156,15 @@ Para: Personas que quieren dominar todo el proceso
 
 | # | Archivo | Propósito | ¿Cuándo leerlo? |
 |---|---------|-----------|-----------------|
-| 1 | **GUIA-DE-INICIO.md** | Índice y guía de lectura | 👈 PRIMERO |
+| 1 | **02-GUIA-DE-INICIO.md** | Índice y guía de lectura | 👈 PRIMERO |
 | 2 | **README.md** | Descripción del proyecto | Segundo |
-| 3 | **CLOUDFLARE-PAGES-DEPLOY.md** | Despliegue rápido gratis | Para pruebas rápidas |
-| 4 | **PROXMOX-QUICKSTART.md** | Inicio rápido Proxmox | Para servidor propio |
-| 5 | **LXC-PROXMOX-REQUISITOS.md** | Guía detallada LXC | Configuración completa |
-| 6 | **REFERENCIA-RAPIDA-LXC.txt** | Referencia visual | Consultas rápidas |
-| 7 | **DEPLOYMENT.md** | Guía completa despliegue | Configuración avanzada |
-| 8 | **LXC-VS-VM-ANALYSIS.md** | Análisis técnico | Entender decisiones |
-| 9 | **GIT-WORKFLOW-EXPLICACION.md** | Explicación de Git | Dudas sobre cambios |
+| 3 | **03-CLOUDFLARE-PAGES-DEPLOY.md** | Despliegue rápido gratis | Para pruebas rápidas |
+| 4 | **04-PROXMOX-QUICKSTART.md** | Inicio rápido Proxmox | Para servidor propio |
+| 5 | **05-LXC-PROXMOX-REQUISITOS.md** | Guía detallada LXC | Configuración completa |
+| 6 | **06-REFERENCIA-RAPIDA-LXC.txt** | Referencia visual | Consultas rápidas |
+| 7 | **08-DEPLOYMENT.md** | Guía completa despliegue | Configuración avanzada |
+| 8 | **09-LXC-VS-VM-ANALYSIS.md** | Análisis técnico | Entender decisiones |
+| 9 | **07-GIT-WORKFLOW-EXPLICACION.md** | Explicación de Git | Dudas sobre cambios |
 | 10 | **deploy.sh** | Script automatizado | Instalación automática |
 
 ---
@@ -220,20 +220,20 @@ Para: Personas que quieren dominar todo el proceso
 ## 📊 Flujo de Trabajo Recomendado
 
 ```
-1. Leer GUIA-DE-INICIO.md (este archivo)
+1. Leer 02-GUIA-DE-INICIO.md (este archivo)
    ↓
 2. Desplegar en Cloudflare Pages (5 min)
-   → Ver CLOUDFLARE-PAGES-DEPLOY.md
+   → Ver 03-CLOUDFLARE-PAGES-DEPLOY.md
    → Probar la aplicación
    → Compartir con equipo para feedback
    ↓
 3. Una vez validado, desplegar en servidor
-   → Ver PROXMOX-QUICKSTART.md
+   → Ver 04-PROXMOX-QUICKSTART.md
    → Configurar en tu Proxmox
    → Usar para producción interna
    ↓
 4. Opcional: Leer análisis técnico
-   → Ver LXC-VS-VM-ANALYSIS.md
+   → Ver 09-LXC-VS-VM-ANALYSIS.md
    → Entender decisiones de arquitectura
 ```
 
@@ -245,22 +245,22 @@ Para: Personas que quieren dominar todo el proceso
 
 ```
 ❓ "¿Cómo despliego rápido?"
-   → CLOUDFLARE-PAGES-DEPLOY.md
+   → 03-CLOUDFLARE-PAGES-DEPLOY.md
 
 ❓ "¿Afecta esto al código original?"
-   → GIT-WORKFLOW-EXPLICACION.md
+   → 07-GIT-WORKFLOW-EXPLICACION.md
 
 ❓ "¿Qué configuración necesito en Proxmox?"
-   → LXC-PROXMOX-REQUISITOS.md
+   → 05-LXC-PROXMOX-REQUISITOS.md
 
 ❓ "¿Qué comandos usar en el servidor?"
-   → REFERENCIA-RAPIDA-LXC.txt
+   → 06-REFERENCIA-RAPIDA-LXC.txt
 
 ❓ "¿Por qué LXC y no VM?"
-   → LXC-VS-VM-ANALYSIS.md
+   → 09-LXC-VS-VM-ANALYSIS.md
 
 ❓ "¿Cómo configurar Nginx y SSL?"
-   → DEPLOYMENT.md
+   → 08-DEPLOYMENT.md
 ```
 
 ---
@@ -270,7 +270,7 @@ Para: Personas que quieren dominar todo el proceso
 ### **Para Pruebas Rápidas (HOY MISMO):**
 
 ```bash
-1. Lee: CLOUDFLARE-PAGES-DEPLOY.md
+1. Lee: 03-CLOUDFLARE-PAGES-DEPLOY.md
 2. Crea cuenta en Cloudflare Pages
 3. Conecta tu repositorio
 4. Espera 2-3 minutos
@@ -280,8 +280,8 @@ Para: Personas que quieren dominar todo el proceso
 ### **Para Servidor Propio (Esta Semana):**
 
 ```bash
-1. Lee: PROXMOX-QUICKSTART.md
-2. Lee: LXC-PROXMOX-REQUISITOS.md
+1. Lee: 04-PROXMOX-QUICKSTART.md
+2. Lee: 05-LXC-PROXMOX-REQUISITOS.md
 3. Crea LXC en Proxmox
 4. Ejecuta deploy.sh
 5. ¡Listo! Aplicación en tu servidor
@@ -311,21 +311,21 @@ Tiempo para desplegar:
 
 ```
 Para Pruebas Rápidas:
-☐ Leer CLOUDFLARE-PAGES-DEPLOY.md
+☐ Leer 03-CLOUDFLARE-PAGES-DEPLOY.md
 ☐ Crear cuenta Cloudflare
 ☐ Conectar repositorio
 ☐ Obtener URL pública
 ☐ Compartir con equipo
 
 Para Servidor:
-☐ Leer PROXMOX-QUICKSTART.md
-☐ Leer LXC-PROXMOX-REQUISITOS.md
+☐ Leer 04-PROXMOX-QUICKSTART.md
+☐ Leer 05-LXC-PROXMOX-REQUISITOS.md
 ☐ Crear LXC Container
 ☐ Ejecutar deploy.sh
 ☐ Acceder a la aplicación
 
 Para Entender:
-☐ Leer GIT-WORKFLOW-EXPLICACION.md
+☐ Leer 07-GIT-WORKFLOW-EXPLICACION.md
 ☐ Entender rama separada
 ☐ Verificar que no afecta código original
 ```
@@ -334,4 +334,4 @@ Para Entender:
 
 **¡Listo para empezar! 🚀**
 
-Recomendación: Comienza con **CLOUDFLARE-PAGES-DEPLOY.md** para tener algo funcionando en 5 minutos.
+Recomendación: Comienza con **03-CLOUDFLARE-PAGES-DEPLOY.md** para tener algo funcionando en 5 minutos.
