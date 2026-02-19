@@ -127,7 +127,7 @@ function UserRecords() {
 
       <div className="filters-bar">
         <div className="filters-inputs">
-            <div className="filter-group"><label>Desde Fer:</label><input type="date" value={desde} onChange={e => setDesde(e.target.value)} className="input-filter"/></div>
+            <div className="filter-group"><label>Desde:</label><input type="date" value={desde} onChange={e => setDesde(e.target.value)} className="input-filter"/></div>
             <div className="filter-group"><label>Hasta:</label><input type="date" value={hasta} onChange={e => setHasta(e.target.value)} className="input-filter"/></div>
             {(desde || hasta) && (
                 <button onClick={limpiarFechas} className="btn-clear" style={{marginTop: '22px'}} title="Borrar filtros">🧹 Ver Todo</button>
