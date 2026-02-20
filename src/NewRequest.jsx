@@ -28,6 +28,7 @@ function NewRequest() {
   const [turnoInfo, setTurnoInfo] = useState('-- : --') 
   const [realInicio, setRealInicio] = useState('')
   const [realFin, setRealFin] = useState('')
+  const [marcaCargada, setMarcaCargada] = useState(false)
 
   const opcionesSolicitud = [
     "COMPENSACIÓN POR TRASLADO DE VIAJE", 
@@ -115,6 +116,33 @@ function NewRequest() {
         }
     }
     if (!cargandoDatos) consultarHorario()
+  }, [fechaDia, codigo, cargandoDatos])
+
+  // Auto-fill marcaciones del Trakker
+  useEffect(() => {
+    if (!fechaDia || !codigo || cargandoDatos) return
+    const cargarMarcacion = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('marcaciones')
+          .select('hora_ingreso, hora_salida')
+          .eq('codigo_trabajador', codigo)
+          .eq('fecha', fechaDia)
+          .single()
+        if (data && !error) {
+          setRealInicio(data.hora_ingreso ? data.hora_ingreso.slice(0, 5) : '')
+          setRealFin(data.hora_salida ? data.hora_salida.slice(0, 5) : '')
+          setMarcaCargada(true)
+        } else {
+          if (!esEdicion) { setRealInicio(''); setRealFin('') }
+          setMarcaCargada(false)
+        }
+      } catch (err) {
+        console.error('Error cargando marcación:', err)
+        setMarcaCargada(false)
+      }
+    }
+    cargarMarcacion()
   }, [fechaDia, codigo, cargandoDatos])
 
   // Cálculo
@@ -299,12 +327,18 @@ function NewRequest() {
                     </div>
                     <div style={{flex:1, display:'flex', gap:'10px'}}>
                         <div style={{flex:1}}>
-                            <label className="label" style={{color:'#193b48'}}>Ingreso Real</label>
-                            <input type="time" className="input" value={realInicio} onChange={(e) => setRealInicio(e.target.value)} required style={{...roundedInputStyle, borderColor:'#cbd5e1', background:'#f8fafc'}} />
+                            <label className="label" style={{color:'#193b48', display:'flex', alignItems:'center', gap:'6px'}}>
+                              Ingreso Real
+                              {marcaCargada && <span title="Cargado desde Trakker" style={{fontSize:'14px'}}>📡</span>}
+                            </label>
+                            <input type="time" className="input" value={realInicio} onChange={(e) => { setRealInicio(e.target.value); setMarcaCargada(false) }} required style={{...roundedInputStyle, borderColor: marcaCargada ? '#7db100' : '#cbd5e1', background: marcaCargada ? '#f0fdf4' : '#f8fafc'}} />
                         </div>
                         <div style={{flex:1}}>
-                            <label className="label" style={{color:'#193b48'}}>Salida Real</label>
-                            <input type="time" className="input" value={realFin} onChange={(e) => setRealFin(e.target.value)} required style={{...roundedInputStyle, borderColor:'#cbd5e1', background:'#f8fafc'}} />
+                            <label className="label" style={{color:'#193b48', display:'flex', alignItems:'center', gap:'6px'}}>
+                              Salida Real
+                              {marcaCargada && <span title="Cargado desde Trakker" style={{fontSize:'14px'}}>📡</span>}
+                            </label>
+                            <input type="time" className="input" value={realFin} onChange={(e) => { setRealFin(e.target.value); setMarcaCargada(false) }} required style={{...roundedInputStyle, borderColor: marcaCargada ? '#7db100' : '#cbd5e1', background: marcaCargada ? '#f0fdf4' : '#f8fafc'}} />
                         </div>
                     </div>
                 </div>
