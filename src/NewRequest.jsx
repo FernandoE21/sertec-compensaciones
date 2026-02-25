@@ -30,12 +30,19 @@ function NewRequest() {
   const [realFin, setRealFin] = useState('')
   const [marcaCargada, setMarcaCargada] = useState(false)
 
+  // Estados para ONOMÁSTICO
+  const [diaLibreOnomastico, setDiaLibreOnomastico] = useState('')
+  const [onomasticoInfo, setOnomasticoInfo] = useState(null)
+  const [diaLibreEsLaboral, setDiaLibreEsLaboral] = useState(null)
+  const [fechaCorteOnomastico, setFechaCorteOnomastico] = useState(null)
+
   const opcionesSolicitud = [
     "COMPENSACIÓN POR TRASLADO DE VIAJE", 
     "COMPENSACIÓN A FAVOR DE CIPSA", 
     "POR SALIDAS ANTES DE HORARIO", 
     "SOBRETIEMPO EN CLIENTE", 
-    "SOBRETIEMPO EN CIPSA"
+    "SOBRETIEMPO EN CIPSA",
+    "ONOMÁSTICO"
   ]
 
   // --- CARGA DE DATOS ---
@@ -45,6 +52,12 @@ function NewRequest() {
         setTrabajador(data)
     }
     cargarUsuario()
+    // Cargar fecha de corte onomástico
+    const cargarConfig = async () => {
+      const { data } = await supabase.from('configuracion').select('valor').eq('clave', 'onomastico_fecha_corte').single()
+      if (data) setFechaCorteOnomastico(data.valor)
+    }
+    cargarConfig()
   }, [codigo])
 
   // Lógica de Bloqueos
@@ -71,12 +84,100 @@ function NewRequest() {
                   setLugarTrabajo("CIPSA"); 
                   setConfigUI({ lugarDisabled: true, lugarOpciones: ["CIPSA"], reqDisabled: false }); 
                   break;
+              case "ONOMÁSTICO":
+                  setLugarTrabajo("N/A"); setRequerimiento("N/A"); setTipoMarcacion("N/A");
+                  setConfigUI({ lugarDisabled: true, lugarOpciones: ["N/A"], reqDisabled: true }); 
+                  break;
               default:
                   setConfigUI({ lugarDisabled: false, lugarOpciones: [], reqDisabled: false }); 
                   break;
           }
       }
   }, [tipoSolicitud])
+
+  // Lógica ONOMÁSTICO: elegibilidad, cumpleaños laboral, ventana mensual
+  useEffect(() => {
+    if (tipoSolicitud !== "ONOMÁSTICO" || !trabajador || !fechaCorteOnomastico) {
+      setOnomasticoInfo(null); setDiaLibreOnomastico(''); setDiaLibreEsLaboral(null)
+      return
+    }
+    const cargarOnomastico = async () => {
+      // 1. Verificar fecha de nacimiento
+      if (!trabajador.fecha_nacimiento) {
+        setOnomasticoInfo({ error: 'No se encontró tu fecha de nacimiento en el sistema. Contacta al administrador.' })
+        return
+      }
+
+      // 2. Verificar elegibilidad: fecha_ingreso <= fecha de corte (dinámica)
+      if (!trabajador.fecha_ingreso || new Date(trabajador.fecha_ingreso + 'T00:00:00') > new Date(fechaCorteOnomastico + 'T00:00:00')) {
+        const fechaTexto = new Date(fechaCorteOnomastico + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+        setOnomasticoInfo({ error: `Este beneficio solo aplica para personal con fecha de ingreso hasta el ${fechaTexto}.` })
+        return
+      }
+
+      const nacimiento = new Date(trabajador.fecha_nacimiento + 'T00:00:00')
+      const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
+      const mes = nacimiento.getMonth(), dia = nacimiento.getDate()
+
+      // 3. Calcular cumpleaños del año actual
+      const cumpleEsteAnio = new Date(hoy.getFullYear(), mes, dia)
+      const cumpleFecha = cumpleEsteAnio.toISOString().split('T')[0]
+
+      // 4. Verificar si el cumpleaños es día laboral
+      const esDomingo = cumpleEsteAnio.getDay() === 0
+      const { data: horarioCumple } = await supabase.rpc('obtener_horario_por_fecha', { p_codigo: codigo, p_fecha: cumpleFecha })
+      const cumpleEsLaboral = horarioCumple && horarioCumple.length > 0
+
+      if (esDomingo || !cumpleEsLaboral) {
+        const diaSemana = cumpleEsteAnio.toLocaleDateString('es-ES', { weekday: 'long' })
+        setOnomasticoInfo({
+          noCorresponde: true,
+          cumpleTexto: cumpleEsteAnio.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }),
+          motivoNoCorresponde: esDomingo
+            ? `Tu cumpleaños (${cumpleEsteAnio.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}) cae DOMINGO.`
+            : `Tu cumpleaños (${cumpleEsteAnio.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}) cae en día no laboral (${diaSemana}).`
+        })
+        return
+      }
+
+      // 5. Ventana = todo el mes del cumpleaños
+      const primerDiaMes = new Date(hoy.getFullYear(), mes, 1)
+      const ultimoDiaMes = new Date(hoy.getFullYear(), mes + 1, 0)
+      const mesActual = hoy.getMonth()
+      const ventanaActiva = (mesActual === mes && hoy.getFullYear() === cumpleEsteAnio.getFullYear())
+
+      // 6. Verificar si ya usó onomástico este año
+      const { data: registrosOnom } = await supabase
+        .from('registro_horas').select('id, estado')
+        .eq('codigo_trabajador', codigo).eq('tipo_solicitud', 'ONOMÁSTICO')
+        .gte('fecha_hora_inicio', primerDiaMes.toISOString().split('T')[0])
+        .lte('fecha_hora_inicio', ultimoDiaMes.toISOString().split('T')[0])
+      const yaUsado = (registrosOnom?.filter(r => r.estado !== 'Rechazado') || []).length > 0
+
+      const mesNombre = cumpleEsteAnio.toLocaleDateString('es-ES', { month: 'long' })
+
+      setOnomasticoInfo({
+        cumpleTexto: cumpleEsteAnio.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }),
+        rangoInicio: primerDiaMes.toISOString().split('T')[0],
+        rangoFin: ultimoDiaMes.toISOString().split('T')[0],
+        mesTexto: mesNombre.charAt(0).toUpperCase() + mesNombre.slice(1),
+        ventanaActiva, yaUsado
+      })
+    }
+    cargarOnomastico()
+  }, [tipoSolicitud, trabajador, codigo, fechaCorteOnomastico])
+
+  // Validar si el día elegido para onomástico es laboral
+  useEffect(() => {
+    if (tipoSolicitud !== "ONOMÁSTICO" || !diaLibreOnomastico || !codigo) {
+      setDiaLibreEsLaboral(null); return
+    }
+    const validar = async () => {
+      const { data } = await supabase.rpc('obtener_horario_por_fecha', { p_codigo: codigo, p_fecha: diaLibreOnomastico })
+      setDiaLibreEsLaboral(data && data.length > 0)
+    }
+    validar()
+  }, [diaLibreOnomastico, tipoSolicitud, codigo])
 
   // Carga Edición
   useEffect(() => {
@@ -88,12 +189,15 @@ function NewRequest() {
         setTipoSolicitud(data.tipo_solicitud); setLugarTrabajo(data.lugar_trabajo); setTipoMarcacion(data.tipo_de_marcacion)
         setRequerimiento(data.requerimiento || ''); setMotivo(data.motivo || '')
         
-        if (data.ingreso) {
+        if (data.tipo_solicitud === 'ONOMÁSTICO' && data.fecha_hora_inicio) {
+            const d = new Date(data.fecha_hora_inicio); const offset = d.getTimezoneOffset()
+            setDiaLibreOnomastico(new Date(d.getTime() - (offset*60*1000)).toISOString().split('T')[0])
+        } else if (data.ingreso) {
             const d = new Date(data.ingreso); const offset = d.getTimezoneOffset()
             setFechaDia(new Date(d.getTime() - (offset*60*1000)).toISOString().split('T')[0])
             setRealInicio(d.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit', hour12: false}))
         }
-        if (data.salida) setRealFin(new Date(data.salida).toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit', hour12: false}))
+        if (data.tipo_solicitud !== 'ONOMÁSTICO' && data.salida) setRealFin(new Date(data.salida).toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit', hour12: false}))
         
         setCargandoDatos(false)
     }
@@ -182,6 +286,43 @@ function NewRequest() {
   // Guardar
   const guardarRegistro = async (e) => {
     e.preventDefault()
+
+    // --- FLUJO ONOMÁSTICO ---
+    if (tipoSolicitud === "ONOMÁSTICO") {
+      if (!diaLibreOnomastico) return Swal.fire('Faltan datos', 'Selecciona el día libre', 'warning')
+      if (onomasticoInfo?.yaUsado && !esEdicion) return Swal.fire('Ya registrado', 'Ya tienes un onomástico registrado para este periodo', 'warning')
+      if (onomasticoInfo?.noCorresponde) return Swal.fire('No corresponde', 'Tu cumpleaños cae en día no laboral, no aplica el beneficio', 'warning')
+      if (!onomasticoInfo?.ventanaActiva && !esEdicion) return Swal.fire('Fuera de plazo', 'Solo puedes registrar onomástico durante el mes de tu cumpleaños', 'warning')
+      if (diaLibreEsLaboral === false) return Swal.fire('Día no laboral', 'Debes elegir un día que te toque trabajar', 'warning')
+      if (diaLibreOnomastico < onomasticoInfo.rangoInicio || diaLibreOnomastico > onomasticoInfo.rangoFin) {
+        return Swal.fire('Fuera de rango', 'El día debe estar dentro del mes de tu cumpleaños', 'warning')
+      }
+      setEnviando(true)
+      const payload = {
+        nombre_empleado: trabajador ? `${trabajador.nombres} ${trabajador.apellidos}` : '',
+        codigo_trabajador: codigo, area: trabajador?.area, cargo: trabajador?.cargo,
+        tipo_solicitud: 'ONOMÁSTICO', requerimiento: 'N/A',
+        motivo: `Día libre por onomástico - Cumpleaños: ${onomasticoInfo.cumpleTexto}`,
+        lugar_trabajo: 'N/A', tipo_de_marcacion: 'N/A',
+        fecha_hora_inicio: new Date(`${diaLibreOnomastico}T00:00:00`),
+        fecha_hora_fin: new Date(`${diaLibreOnomastico}T23:59:59`),
+        ingreso: new Date(`${diaLibreOnomastico}T00:00:00`),
+        salida: new Date(`${diaLibreOnomastico}T23:59:59`),
+        estado: 'Pendiente'
+      }
+      const { error } = esEdicion
+        ? await supabase.from('registro_horas').update(payload).eq('nro_registro', nroRegistro)
+        : await supabase.from('registro_horas').insert([payload])
+      setEnviando(false)
+      if (error) Swal.fire('Error', error.message, 'error')
+      else {
+        Swal.fire({ title: '¡Registrado!', text: 'Solicitud de onomástico enviada', icon: 'success', timer: 1500, showConfirmButton: false })
+        navigate(`/registros/${codigo}`)
+      }
+      return
+    }
+
+    // --- FLUJO NORMAL ---
     if (!fechaDia || !realInicio || !realFin) return Swal.fire('Faltan datos', 'Completa fecha y horas', 'warning')
     setEnviando(true)
 
@@ -284,7 +425,8 @@ function NewRequest() {
                     </div>
                 </div>
 
-                {/* FILA 2 */}
+                {/* FILA 2 - Oculta para ONOMÁSTICO */}
+                {tipoSolicitud !== 'ONOMÁSTICO' && (<>
                 <div>
                     <label className="label">Lugar</label>
                     <select className="input" value={lugarTrabajo} onChange={(e) => setLugarTrabajo(e.target.value)} required disabled={configUI.lugarDisabled && configUI.lugarOpciones.length === 1} style={{...roundedInputStyle, background: configUI.lugarDisabled ? '#f8fafc' : 'white'}}>
@@ -302,9 +444,100 @@ function NewRequest() {
                     <label className="label">Detalles / Motivo <span style={{fontSize:'11px', color:'#94a3b8', fontWeight:'normal'}}>(Opcional)</span></label>
                     <input className="input" type="text" placeholder="Describe brevemente la actividad..." value={motivo} onChange={e => setMotivo(e.target.value)} style={roundedInputStyle} />
                 </div>
+                </>)}
 
                 <div style={{gridColumn:'span 2', height:'1px', background:'#e2e8f0', margin:'10px 0'}}></div>
 
+                {/* === SECCIÓN ONOMÁSTICO === */}
+                {tipoSolicitud === 'ONOMÁSTICO' && (
+                  <div style={{gridColumn:'span 2'}}>
+                    {!onomasticoInfo ? (
+                      <div style={{textAlign:'center', padding:'20px', color:'#94a3b8'}}>Cargando datos de onomástico...</div>
+                    ) : onomasticoInfo.error ? (
+                      <div style={{background:'#fef2f2', border:'1px solid #fca5a5', borderRadius:'16px', padding:'20px', display:'flex', alignItems:'center', gap:'15px'}}>
+                        <span style={{fontSize:'32px'}}>⚠️</span>
+                        <div><strong style={{color:'#991b1b'}}>{onomasticoInfo.error}</strong></div>
+                      </div>
+                    ) : onomasticoInfo.noCorresponde ? (
+                      <div style={{display:'flex', flexDirection:'column', gap:'15px'}}>
+                        <div style={{background:'linear-gradient(135deg, #f1f5f9, #e2e8f0)', border:'1px solid #94a3b8', borderRadius:'16px', padding:'20px', display:'flex', alignItems:'center', gap:'15px'}}>
+                          <span style={{fontSize:'42px'}}>🚫</span>
+                          <div>
+                            <strong style={{fontSize:'16px', color:'#334155'}}>No corresponde onomástico este año</strong>
+                            <p style={{margin:'5px 0 0', fontSize:'13px', color:'#475569'}}>
+                              {onomasticoInfo.motivoNoCorresponde} No le corresponde día libre por onomástico.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{display:'flex', flexDirection:'column', gap:'15px'}}>
+                        {/* Tarjeta de cumpleaños */}
+                        <div style={{background:'linear-gradient(135deg, #fef3c7, #fde68a)', border:'1px solid #fbbf24', borderRadius:'16px', padding:'20px', display:'flex', alignItems:'center', gap:'15px', boxShadow:'0 4px 15px -3px rgba(251,191,36,0.3)'}}>
+                          <span style={{fontSize:'42px'}}>🎂</span>
+                          <div>
+                            <strong style={{fontSize:'18px', color:'#92400e'}}>Tu cumpleaños: {onomasticoInfo.cumpleTexto}</strong>
+                            <p style={{margin:'5px 0 0', fontSize:'13px', color:'#78350f'}}>
+                              Puedes tomar tu día libre en cualquier día laboral del mes de <strong>{onomasticoInfo.mesTexto}</strong>
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Ya usado */}
+                        {onomasticoInfo.yaUsado && !esEdicion && (
+                          <div style={{background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:'12px', padding:'15px', textAlign:'center'}}>
+                            <strong style={{color:'#991b1b'}}>⚠️ Ya tienes un onomástico registrado para este periodo</strong>
+                          </div>
+                        )}
+
+                        {/* Ventana no activa */}
+                        {!onomasticoInfo.ventanaActiva && !onomasticoInfo.yaUsado && (
+                          <div style={{background:'#f1f5f9', border:'1px solid #cbd5e1', borderRadius:'12px', padding:'15px', textAlign:'center'}}>
+                            <span style={{color:'#475569'}}>⏳ Tu onomástico es en el mes de <strong>{onomasticoInfo.mesTexto}</strong>. Podrás registrarlo cuando llegue ese mes.</span>
+                          </div>
+                        )}
+
+                        {/* Selector de día libre */}
+                        {(onomasticoInfo.ventanaActiva || esEdicion) && !(onomasticoInfo.yaUsado && !esEdicion) && (
+                          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px', alignItems:'flex-end'}}>
+                            <div>
+                              <label className="label">📅 Elige tu día libre en {onomasticoInfo.mesTexto}</label>
+                              <input 
+                                type="date" className="input" 
+                                value={diaLibreOnomastico} 
+                                onChange={e => setDiaLibreOnomastico(e.target.value)}
+                                min={onomasticoInfo.rangoInicio}
+                                max={onomasticoInfo.rangoFin}
+                                required
+                                style={roundedInputStyle}
+                              />
+                            </div>
+                            <div>
+                              {diaLibreEsLaboral === true && (
+                                <div style={{background:'#dcfce7', border:'1px solid #86efac', borderRadius:'12px', padding:'12px 15px', textAlign:'center'}}>
+                                  <strong style={{color:'#15803d'}}>✅ Día laboral válido</strong>
+                                </div>
+                              )}
+                              {diaLibreEsLaboral === false && (
+                                <div style={{background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:'12px', padding:'12px 15px', textAlign:'center'}}>
+                                  <strong style={{color:'#991b1b'}}>❌ No es día laboral - Elige otro</strong>
+                                </div>
+                              )}
+                              {diaLibreEsLaboral === null && diaLibreOnomastico && (
+                                <div style={{background:'#f1f5f9', borderRadius:'12px', padding:'12px 15px', textAlign:'center', color:'#64748b'}}>
+                                  Verificando...
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* === SECCIÓN HORARIO NORMAL (oculta para ONOMÁSTICO) === */}
+                {tipoSolicitud !== 'ONOMÁSTICO' && (<>
                 {/* FILA 3: HORARIO REDONDEADO */}
                 <div style={{gridColumn:'span 2', display:'flex', gap:'20px', alignItems:'flex-start'}}>
                     <div style={{flex: 1.3}}>
@@ -374,6 +607,7 @@ function NewRequest() {
                         </div>
                     )}
                 </div>
+                </>)}
             </div>
 
             <button 

@@ -6,7 +6,9 @@ import UserRecords from './UserRecords.jsx'
 import NewRequest from './NewRequest.jsx' 
 import AdminDashboard from './AdminDashboard.jsx'
 import AdminLogin from './AdminLogin.jsx'
-import AdminUserRecords from './AdminUserRecords.jsx' 
+import AdminUserRecords from './AdminUserRecords.jsx'
+import AdminAddPersonal from './AdminAddPersonal.jsx'
+import AdminEditPersonal from './AdminEditPersonal.jsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -25,6 +27,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin-panel" element={<AdminDashboard />} />
         <Route path="/admin/registros/:codigo" element={<AdminUserRecords />} />
+        <Route path="/admin/nuevo-personal" element={<AdminAddPersonal />} />
+        <Route path="/admin/editar-personal/:codigo" element={<AdminEditPersonal />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>,
