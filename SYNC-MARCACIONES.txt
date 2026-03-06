@@ -1,0 +1,130 @@
+SINCRONIZACIÓN DE MARCACIONES - RESUMEN TÉCNICO
+=================================================
+
+OBJETIVO:
+Traer las marcas de entrada/salida de los trabajadores desde el servidor
+PROMETEO (SQL Server) hacia Supabase, para mostrarlas en el Portal de
+Compensaciones cuando un empleado crea una solicitud.
+
+
+ARQUITECTURA:
+=============
+
+  PROMETEO (SQL Server)          Proxmox CT 102              Supabase
+  ┌──────────────────┐     ┌──────────────────────┐    ┌─────────────────┐
+  │ BD: MARCACION    │     │ compensaciones-app    │    │ Tabla:          │
+  │ Tabla:           │────>│                       │───>│ marcaciones     │
+  │ MARCACION_BASE   │     │ sync-marcaciones.cjs  │    │                 │
+  │                  │     │ (cron cada 10 min)    │    │ - codigo_trab   │
+  │ - id_trabajador  │     │                       │    │ - fecha         │
+  │ - fec_jornada    │     │ Ruta:                 │    │ - hora_ingreso  │
+  │ - fec_hra_marca  │     │ /root/sync-marcaciones│    │ - hora_salida   │
+  │ - flg_app        │     │                       │    │ - hora_ing_app  │
+  │ - flg_anulado    │     └──────────────────────┘    │ - hora_sal_app  │
+  └──────────────────┘                                  └─────────────────┘
+                                                               │
+                                                               ▼
+                                                        ┌─────────────────┐
+                                                        │ NewRequest.jsx  │
+                                                        │ (Frontend)      │
+                                                        │                 │
+                                                        │ Al elegir fecha │
+                                                        │ consulta tabla  │
+                                                        │ y auto-llena    │
+                                                        │ Ingreso/Salida  │
+                                                        └─────────────────┘
+
+
+1. BACKEND - Script de Sincronización
+=====================================
+
+ARCHIVO: /root/sync-marcaciones/sync-marcaciones.cjs (en Proxmox CT 102)
+
+CONEXIÓN SQL SERVER:
+  - Servidor: PROMETEO (puerto 1200)
+  - Base de datos: MARCACION
+  - Usuario: USERDESK / GPTY2K5
+  - Tabla: MARCACION_BASE
+
+QUÉ HACE:
+  1. Se conecta a PROMETEO cada 10 minutos (cron)
+  2. Consulta MARCACION_BASE de los últimos 7 días
+  3. Filtra: flg_anulado = 0, id_tpo_marcacion IN ('01','02')
+  4. Agrupa por trabajador + fecha + flg_app:
+     - flg_app = NULL o 0  →  marca del TRAKKER (reloj físico)
+     - flg_app = 1         →  marca de la APP MÓVIL
+  5. Para cada trabajador+día calcula:
+     - MIN(hora) = ingreso, MAX(hora) = salida
+  6. Sube a Supabase con UPSERT (inserta o actualiza)
+
+CRON (cada 10 minutos):
+  */10 * * * * cd /root/sync-marcaciones && node sync-marcaciones.cjs >> sync.log 2>&1
+
+DEPENDENCIAS (instaladas en Proxmox):
+  - mssql (conexión a SQL Server)
+  - @supabase/supabase-js (conexión a Supabase)
+
+
+2. BASE DE DATOS - Tabla en Supabase
+=====================================
+
+TABLA: marcaciones
+
+  codigo_trabajador  (text)     - Ej: "01000123" (sin prefijo 0101)
+  fecha              (date)     - Ej: "2026-02-26"
+  hora_ingreso       (time)     - Marca TRAKKER entrada. Ej: "07:05:00"
+  hora_salida        (time)     - Marca TRAKKER salida.  Ej: "15:32:00"
+  hora_ingreso_app   (time)     - Marca APP entrada (puede ser NULL)
+  hora_salida_app    (time)     - Marca APP salida  (puede ser NULL)
+
+  CLAVE ÚNICA: (codigo_trabajador, fecha)
+
+NOTA sobre id_trabajador:
+  En SQL Server el código es "010101000123" (12 dígitos)
+  En Supabase guardamos solo "01000123" (quitamos los 4 primeros: "0101")
+  Función: sqlIdToSupabase(id) → id.trim().substring(4)
+
+
+3. FRONTEND - Cómo se muestra
+==============================
+
+ARCHIVO: src/NewRequest.jsx
+
+FLUJO:
+  1. El empleado selecciona una FECHA en el formulario
+  2. Se dispara un useEffect que consulta:
+     supabase.from('marcaciones').select('*').eq('codigo_trabajador', codigo).eq('fecha', fechaDia)
+  3. Si encuentra datos:
+     - hora_ingreso/hora_salida → se llenan automáticamente en "Ingreso Real" y "Salida Real"
+     - hora_ingreso_app/hora_salida_app → se muestran en campos adicionales (solo si existen)
+  4. Si NO hay datos → los campos quedan vacíos para llenado manual
+
+INDICADORES VISUALES:
+  - 📡 = Dato cargado desde Trakker (borde verde en el input)
+  - 📱 = Dato cargado desde APP móvil (campo extra, solo visible si hay datos)
+
+
+4. TABLAS DESCUBIERTAS EN PROMETEO
+====================================
+
+En la BD MARCACION existen varias tablas. Las relevantes son:
+
+  MARCACION_BASE        → Marcas de Trakker + App (la principal, la que usamos)
+                           Tiene flg_app para diferenciar origen
+  usuario_gps           → Marcas GPS con coordenadas (uso comercial, no la usamos)
+  Marcacion_Tipo        → Catálogo: 01=TRACKER entrada, 02=TRACKER salida
+  Marcador              → Dispositivos físicos (TRACKER 1, TRACKER 2)
+  MARCACION_HISTORIAL   → Historial procesado de jornadas (uso RRHH)
+  TRABAJADOR_CELULAR    → Mapeo trabajador-celular
+
+  Las demás (TEMPORAL_*, OFIPLAN*, YANO_*) son backups/exports antiguos.
+
+
+5. DATOS CLAVE DE CONEXIÓN
+============================
+
+  SQL Server:  PROMETEO:1200 | BD: MARCACION | User: USERDESK | Pass: GPTY2K5
+  Supabase:    pwzogtzcgcxiondlcfeo.supabase.co
+  Proxmox:     Container 102 "compensaciones-app"
+  Ruta script: /root/sync-marcaciones/sync-marcaciones.cjs
+  Cron:        */10 * * * *

@@ -1,34 +1,48 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import App from './App.jsx'
-import UserRecords from './UserRecords.jsx'
-import NewRequest from './NewRequest.jsx' 
-import AdminDashboard from './AdminDashboard.jsx'
-import AdminLogin from './AdminLogin.jsx'
-import AdminUserRecords from './AdminUserRecords.jsx'
-import AdminAddPersonal from './AdminAddPersonal.jsx'
-import AdminEditPersonal from './AdminEditPersonal.jsx'
+import Login from './pages/Login.jsx'
+import UserRecords from './pages/UserRecords.jsx'
+import NewRequest from './pages/NewRequest.jsx'
+import AdminDashboard from './pages/AdminDashboard.jsx'
+import AdminDashboardHome from './pages/AdminDashboardHome.jsx'
+import AdminLogin from './pages/AdminLogin.jsx'
+import AdminUserRecords from './pages/AdminUserRecords.jsx'
+import AdminAddPersonal from './pages/AdminAddPersonal.jsx'
+import AdminEditPersonal from './pages/AdminEditPersonal.jsx'
+import AdminBitacora from './pages/AdminBitacora.jsx'
+import AdminAdministradores from './pages/AdminAdministradores.jsx'
+import AdminConfiguracion from './pages/AdminConfiguracion.jsx'
+import UserLayout from './components/UserLayout.jsx'
+import AdminLayout from './components/AdminLayout.jsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<App />} />
-        
-        {/* RUTAS DE USUARIO */}
-        <Route path="/registros/:codigo" element={<UserRecords />} />
-        <Route path="/nuevo-registro/:codigo" element={<NewRequest />} />
-        {/* CAMBIO AQUÍ: Ahora usamos :nroRegistro en lugar de :idRegistro */}
-        <Route path="/editar-registro/:codigo/:nroRegistro" element={<NewRequest />} />
-        
-        {/* RUTAS DE ADMIN */}
+        {/* Public routes */}
+        <Route path="/" element={<Login />} />
         <Route path="/admin" element={<AdminLogin />} />
-        <Route path="/admin-panel" element={<AdminDashboard />} />
-        <Route path="/admin/registros/:codigo" element={<AdminUserRecords />} />
-        <Route path="/admin/nuevo-personal" element={<AdminAddPersonal />} />
-        <Route path="/admin/editar-personal/:codigo" element={<AdminEditPersonal />} />
+
+        {/* Employee routes with bottom nav */}
+        <Route element={<UserLayout />}>
+          <Route path="/registros/:codigo" element={<UserRecords />} />
+          <Route path="/nuevo-registro/:codigo" element={<NewRequest />} />
+          <Route path="/editar-registro/:codigo/:nroRegistro" element={<NewRequest />} />
+        </Route>
+
+        {/* Admin routes with sidebar */}
+        <Route element={<AdminLayout />}>
+          <Route path="/admin/dashboard" element={<AdminDashboardHome />} />
+          <Route path="/admin-panel" element={<AdminDashboard />} />
+          <Route path="/admin/registros/:codigo" element={<AdminUserRecords />} />
+          <Route path="/admin/nuevo-personal" element={<AdminAddPersonal />} />
+          <Route path="/admin/editar-personal/:codigo" element={<AdminEditPersonal />} />
+          <Route path="/admin/bitacora" element={<AdminBitacora />} />
+          <Route path="/admin/administradores" element={<AdminAdministradores />} />
+          <Route path="/admin/configuracion" element={<AdminConfiguracion />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   </React.StrictMode>,

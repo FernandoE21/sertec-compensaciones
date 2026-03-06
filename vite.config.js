@@ -1,16 +1,18 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   plugins: [
     react(),
+    tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate', // Se actualiza sola cuando hay cambios
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'Portal de Horas CIPSA',
-        short_name: 'Horas CIPSA',
+        name: 'Portal de Horas SERTEC',
+        short_name: 'Horas SERTEC',
         description: 'Gestión de horas extras y compensaciones',
         theme_color: '#193b48', // Tu azul corporativo
         background_color: '#f4f7f6', // Tu fondo
