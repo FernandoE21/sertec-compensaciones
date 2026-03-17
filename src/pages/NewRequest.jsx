@@ -19,6 +19,10 @@ function NewRequest() {
   const [motivo, setMotivo] = useState('')
   const [lugarTrabajo, setLugarTrabajo] = useState('')
   const [tipoMarcacion, setTipoMarcacion] = useState('')
+  const [diaACompensar, setDiaACompensar] = useState('')
+  const [diaExtras, setDiaExtras] = useState('')
+  const [dispositivoInicio, setDispositivoInicio] = useState('')
+  const [dispositivoFin, setDispositivoFin] = useState('')
   const [configUI, setConfigUI] = useState({ lugarDisabled: false, lugarOpciones: [], reqDisabled: false })
 
   const [fechaDia, setFechaDia] = useState('')
@@ -36,15 +40,12 @@ function NewRequest() {
   const [fechaCorteOnomastico, setFechaCorteOnomastico] = useState(null)
 
   const opcionesSolicitud = [
-    "COMPENSACIÓN POR TRASLADO DE VIAJE - CONDUCTOR",
-    "COMPENSACIÓN POR TRASLADO DE VIAJE - COPILOTO",
-    "COMPENSACIÓN A FAVOR DE SERTEC",
-    "COMPENSACIÓN POR TRASLADO DE EQUIPOS",
-    "POR SALIDAS ANTES DE HORARIO",
+    "POR SALIDA ANTES DE HORARIO",
     "POR INGRESO FUERA DE HORARIO",
-    "SOBRETIEMPO EN CLIENTE",
-    "SOBRETIEMPO EN SERTEC",
-    "SOBRETIEMPO POR TRASLADO DE VIAJE",
+    "COMPENSAR HORAS",
+    "POR TRASLADO DE VIAJE",
+    "POR TRASLADO DE EQUIPOS",
+    "SOBRETIEMPO",
     "ONOMÁSTICO"
   ]
 
@@ -66,19 +67,14 @@ function NewRequest() {
   useEffect(() => {
     if (!cargandoDatos) {
       switch (tipoSolicitud) {
-        case "COMPENSACIÓN POR TRASLADO DE VIAJE - CONDUCTOR":
-        case "COMPENSACIÓN POR TRASLADO DE VIAJE - COPILOTO":
-        case "COMPENSACIÓN POR TRASLADO DE EQUIPOS":
-        case "SOBRETIEMPO POR TRASLADO DE VIAJE":
-        case "SOBRETIEMPO EN CLIENTE":
-          setLugarTrabajo("CLIENTE"); setConfigUI({ lugarDisabled: true, lugarOpciones: ["CLIENTE"], reqDisabled: false }); break
-        case "COMPENSACIÓN A FAVOR DE SERTEC":
+        case "POR TRASLADO DE VIAJE":
+        case "POR TRASLADO DE EQUIPOS":
+        case "SOBRETIEMPO":
           setLugarTrabajo(""); setConfigUI({ lugarDisabled: false, lugarOpciones: ["SERTEC", "CLIENTE"], reqDisabled: false }); break
-        case "POR SALIDAS ANTES DE HORARIO":
+        case "POR SALIDA ANTES DE HORARIO":
         case "POR INGRESO FUERA DE HORARIO":
+        case "COMPENSAR HORAS":
           setLugarTrabajo("N/A"); setConfigUI({ lugarDisabled: true, lugarOpciones: ["N/A"], reqDisabled: false }); break
-        case "SOBRETIEMPO EN SERTEC":
-          setLugarTrabajo("SERTEC"); setConfigUI({ lugarDisabled: true, lugarOpciones: ["SERTEC"], reqDisabled: false }); break
         case "ONOMÁSTICO":
           setLugarTrabajo("N/A"); setRequerimiento("N/A"); setTipoMarcacion("N/A")
           setConfigUI({ lugarDisabled: true, lugarOpciones: ["N/A"], reqDisabled: true }); break
@@ -140,6 +136,8 @@ function NewRequest() {
       const { data, error } = await supabase.from('registro_horas').select('*').eq('nro_registro', nroRegistro).single()
       if (error || !data) { navigate(`/registros/${codigo}`); return }
       setTipoSolicitud(data.tipo_solicitud); setLugarTrabajo(data.lugar_trabajo); setTipoMarcacion(data.tipo_de_marcacion)
+      setDispositivoInicio(data.dispositivo_inicio || ''); setDispositivoFin(data.dispositivo_fin || '');
+      setDiaACompensar(data.dia_a_compensar || ''); setDiaExtras(data.dia_extras || '');
       setRequerimiento(data.requerimiento || ''); setMotivo(data.motivo || '')
       if (data.tipo_solicitud === 'ONOMÁSTICO' && data.fecha_hora_inicio) {
         const d = new Date(data.fecha_hora_inicio); const offset = d.getTimezoneOffset()
@@ -239,7 +237,7 @@ function NewRequest() {
       const absMins = Math.abs(previewCalculo.mins)
       fInicio = new Date(`${fechaDia}T${realInicio}:00`); fFin = new Date(fInicio.getTime() + (absMins * 60000))
     } else { fInicio = new Date(`${fechaDia}T${realInicio}:00`); fFin = new Date(`${fechaDia}T${realInicio}:00`) }
-    const payload = { nombre_empleado: trabajador ? `${trabajador.nombres} ${trabajador.apellidos}` : '', codigo_trabajador: codigo, area: trabajador?.area, cargo: trabajador?.cargo, tipo_solicitud: tipoSolicitud, requerimiento, motivo, lugar_trabajo: lugarTrabajo, tipo_de_marcacion: tipoMarcacion, fecha_hora_inicio: fInicio, fecha_hora_fin: fFin, ingreso: new Date(`${fechaDia}T${realInicio}:00`), salida: new Date(`${fechaDia}T${realFin}:00`), estado: 'Pendiente' }
+    const payload = { nombre_empleado: trabajador ? `${trabajador.nombres} ${trabajador.apellidos}` : '', codigo_trabajador: codigo, area: trabajador?.area, cargo: trabajador?.cargo, tipo_solicitud: tipoSolicitud, requerimiento, motivo, lugar_trabajo: lugarTrabajo, tipo_de_marcacion: tipoMarcacion, dispositivo_inicio: dispositivoInicio, dispositivo_fin: dispositivoFin, dia_a_compensar: diaACompensar, dia_extras: diaExtras, fecha_hora_inicio: fInicio, fecha_hora_fin: fFin, ingreso: new Date(`${fechaDia}T${realInicio}:00`), salida: new Date(`${fechaDia}T${realFin}:00`), estado: 'Pendiente' }
     const { error } = esEdicion ? await supabase.from('registro_horas').update(payload).eq('nro_registro', nroRegistro) : await supabase.from('registro_horas').insert([payload])
     setEnviando(false)
     if (error) Swal.fire('Error', error.message, 'error')
@@ -301,17 +299,23 @@ function NewRequest() {
           {/* Row 2: Lugar + Marcación + Motivo (hidden for ONOMÁSTICO) */}
           {tipoSolicitud !== 'ONOMÁSTICO' && (
             <>
+              {tipoSolicitud === 'COMPENSAR HORAS' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className={labelCls}>Día a Compensar (Faltó/Tarde)</label>
+                    <input className={inputCls} type="date" value={diaACompensar} onChange={e => setDiaACompensar(e.target.value)} required style={{ colorScheme: 'light' }} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Día que hizo las Extras</label>
+                    <input className={inputCls} type="date" value={diaExtras} onChange={e => setDiaExtras(e.target.value)} required style={{ colorScheme: 'light' }} />
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Lugar</label>
                   <select className={`${inputCls} ${configUI.lugarDisabled ? disabledCls : ''}`} value={lugarTrabajo} onChange={(e) => setLugarTrabajo(e.target.value)} required disabled={configUI.lugarDisabled && configUI.lugarOpciones.length === 1}>
                     {configUI.lugarOpciones.length > 0 ? configUI.lugarOpciones.map(op => <option key={op} value={op}>{op}</option>) : <><option value="">Elegir...</option><option value="SERTEC">SERTEC</option><option value="CLIENTE">CLIENTE</option></>}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Marcación</label>
-                  <select className={inputCls} value={tipoMarcacion} onChange={(e) => setTipoMarcacion(e.target.value)} required>
-                    <option value="">Elegir...</option><option value="TRAKKER">TRAKKER</option><option value="APP">APP</option>
                   </select>
                 </div>
               </div>
@@ -403,15 +407,25 @@ function NewRequest() {
                   {marcaCargada && <span className="text-[10px] bg-corporate-green text-white px-2 py-0.5 rounded-full font-bold">AUTO</span>}
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-2.5 border border-gray-200 flex-1">
-                    <span className="text-xs font-semibold text-green-600 min-w-[90px]">Primera marca</span>
-                    <span className="text-gray-300">│</span>
-                    <input type="time" className="no-clock-icon border-none p-0 font-mono text-sm font-extrabold text-gray-600 bg-transparent flex-1 outline-none shadow-none cursor-not-allowed" value={realInicio} readOnly required />
+                  <div className="flex flex-col gap-2 flex-1">
+                    <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-2.5 border border-gray-200">
+                      <span className="text-xs font-semibold text-green-600 min-w-[90px]">Primera marca</span>
+                      <span className="text-gray-300">│</span>
+                      <input type="time" className="no-clock-icon border-none p-0 font-mono text-sm font-extrabold text-gray-600 bg-transparent flex-1 outline-none shadow-none cursor-not-allowed" value={realInicio} readOnly required />
+                    </div>
+                    <select className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none bg-white" value={dispositivoInicio} onChange={e => setDispositivoInicio(e.target.value)} required={!esEdicion}>
+                      <option value="">Disp. Inicio...</option><option value="TRAKKER">TRAKKER</option><option value="APP">APP</option>
+                    </select>
                   </div>
-                  <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-2.5 border border-gray-200 flex-1">
-                    <span className="text-xs font-semibold text-red-600 min-w-[90px]">Última marca</span>
-                    <span className="text-gray-300">│</span>
-                    <input type="time" className="no-clock-icon border-none p-0 font-mono text-sm font-extrabold text-gray-600 bg-transparent flex-1 outline-none shadow-none cursor-not-allowed" value={realFin} readOnly required />
+                  <div className="flex flex-col gap-2 flex-1">
+                    <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-2.5 border border-gray-200">
+                      <span className="text-xs font-semibold text-red-600 min-w-[90px]">Última marca</span>
+                      <span className="text-gray-300">│</span>
+                      <input type="time" className="no-clock-icon border-none p-0 font-mono text-sm font-extrabold text-gray-600 bg-transparent flex-1 outline-none shadow-none cursor-not-allowed" value={realFin} readOnly required />
+                    </div>
+                    <select className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none bg-white" value={dispositivoFin} onChange={e => setDispositivoFin(e.target.value)} required={!esEdicion}>
+                      <option value="">Disp. Fin...</option><option value="TRAKKER">TRAKKER</option><option value="APP">APP</option>
+                    </select>
                   </div>
                 </div>
               </div>
