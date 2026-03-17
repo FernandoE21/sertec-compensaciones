@@ -332,10 +332,20 @@ function NewRequest() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-1">
               <label className={labelCls}>Tipo de Solicitud</label>
-              <select className={`${inputCls} font-medium ${esEdicion ? disabledCls : ''}`} value={tipoCompensacion} onChange={(e) => { setTipoCompensacion(e.target.value); setTipoSolicitud(''); }} required disabled={esEdicion}>
+              <select 
+                className={`${inputCls} font-medium ${esEdicion ? disabledCls : ''} ${
+                  tipoCompensacion === 'COMPENSACIÓN A FAVOR DE CIPSA' ? '!text-red-700 !bg-red-50 !border-red-300' : 
+                  tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO' ? '!text-emerald-700 !bg-emerald-50 !border-emerald-300' : 
+                  ''
+                }`} 
+                value={tipoCompensacion} 
+                onChange={(e) => { setTipoCompensacion(e.target.value); setTipoSolicitud(''); }} 
+                required 
+                disabled={esEdicion}
+              >
                 <option value="">Seleccione...</option>
-                <option value="COMPENSACIÓN A FAVOR DE CIPSA">FAVOR DE CIPSA</option>
-                <option value="COMPENSACIÓN A FAVOR DEL TÉCNICO">FAVOR DEL TÉCNICO</option>
+                <option value="COMPENSACIÓN A FAVOR DE CIPSA">FAVOR DE CIPSA (RESTAR)</option>
+                <option value="COMPENSACIÓN A FAVOR DEL TÉCNICO">FAVOR DEL TÉCNICO (SUMAR)</option>
               </select>
             </div>
             <div className="md:col-span-1">
