@@ -14,6 +14,7 @@ function NewRequest() {
   const [enviando, setEnviando] = useState(false)
   const [cargandoDatos, setCargandoDatos] = useState(esEdicion)
 
+  const [tipoCompensacion, setTipoCompensacion] = useState('')
   const [tipoSolicitud, setTipoSolicitud] = useState('')
   const [requerimiento, setRequerimiento] = useState('')
   const [motivo, setMotivo] = useState('')
@@ -33,21 +34,31 @@ function NewRequest() {
   const [realFin, setRealFin] = useState('')
   const [marcaCargada, setMarcaCargada] = useState(false)
   const [marcasGPS, setMarcasGPS] = useState([])
+  const [todasLasMarcas, setTodasLasMarcas] = useState([])
 
   const [diaLibreOnomastico, setDiaLibreOnomastico] = useState('')
   const [onomasticoInfo, setOnomasticoInfo] = useState(null)
   const [diaLibreEsLaboral, setDiaLibreEsLaboral] = useState(null)
   const [fechaCorteOnomastico, setFechaCorteOnomastico] = useState(null)
 
-  const opcionesSolicitud = [
+  const opcionesCipsa = [
     "POR SALIDA ANTES DE HORARIO",
     "POR INGRESO FUERA DE HORARIO",
-    "COMPENSAR HORAS",
+    "COMPENSAR HORAS"
+  ]
+
+  const opcionesTecnico = [
     "POR TRASLADO DE VIAJE",
     "POR TRASLADO DE EQUIPOS",
     "SOBRETIEMPO",
     "ONOMÁSTICO"
   ]
+
+  const opcionesActuales = useMemo(() => {
+    if (tipoCompensacion === 'COMPENSACIÓN A FAVOR DE CIPSA') return opcionesCipsa
+    if (tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO') return opcionesTecnico
+    return []
+  }, [tipoCompensacion])
 
   // --- DATA LOADING ---
   useEffect(() => {
@@ -135,6 +146,11 @@ function NewRequest() {
     const cargarRegistro = async () => {
       const { data, error } = await supabase.from('registro_horas').select('*').eq('nro_registro', nroRegistro).single()
       if (error || !data) { navigate(`/registros/${codigo}`); return }
+      if (["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS"].includes(data.tipo_solicitud)) {
+        setTipoCompensacion("COMPENSACIÓN A FAVOR DE CIPSA")
+      } else {
+        setTipoCompensacion("COMPENSACIÓN A FAVOR DEL TÉCNICO")
+      }
       setTipoSolicitud(data.tipo_solicitud); setLugarTrabajo(data.lugar_trabajo); setTipoMarcacion(data.tipo_de_marcacion)
       setDispositivoInicio(data.dispositivo_inicio || ''); setDispositivoFin(data.dispositivo_fin || '');
       setDiaACompensar(data.dia_a_compensar || ''); setDiaExtras(data.dia_extras || '');
@@ -170,30 +186,61 @@ function NewRequest() {
     if (!cargandoDatos) consultarHorario()
   }, [fechaDia, codigo, cargandoDatos])
 
-  // Trakker marks
+  // Trakker and GPS marks combined
   useEffect(() => {
     if (!fechaDia || !codigo || cargandoDatos) return
-    const cargarMarcacion = async () => {
+    const cargarMarcas = async () => {
       try {
-        const { data, error } = await supabase.from('marcaciones').select('hora_ingreso, hora_salida').eq('codigo_trabajador', codigo).eq('fecha', fechaDia).single()
-        if (data && !error) { setRealInicio(data.hora_ingreso ? data.hora_ingreso.slice(0, 5) : ''); setRealFin(data.hora_salida ? data.hora_salida.slice(0, 5) : ''); setMarcaCargada(true) }
-        else { if (!esEdicion) { setRealInicio(''); setRealFin('') }; setMarcaCargada(false) }
-      } catch { setMarcaCargada(false) }
-    }
-    cargarMarcacion()
-  }, [fechaDia, codigo, cargandoDatos])
+        let marcas = []
+        // Trakker
+        const { data: d1, error: e1 } = await supabase.from('marcaciones').select('hora_ingreso, hora_salida').eq('codigo_trabajador', codigo).eq('fecha', fechaDia).single()
+        if (d1 && !e1) {
+          if (d1.hora_ingreso) marcas.push({ hora: d1.hora_ingreso.slice(0, 5), dispositivo: 'TRAKKER' })
+          if (d1.hora_salida && d1.hora_salida !== d1.hora_ingreso) marcas.push({ hora: d1.hora_salida.slice(0, 5), dispositivo: 'TRAKKER' })
+          setMarcaCargada(true)
+        } else {
+          setMarcaCargada(false)
+        }
 
-  // GPS marks
-  useEffect(() => {
-    if (!fechaDia || !codigo || cargandoDatos) return
-    const cargarMarcasGPS = async () => {
-      try {
-        const { data, error } = await supabase.from('marcaciones_gps').select('fecha_marca, observacion, cliente, otr_referencia').eq('codigo_trabajador', codigo).gte('fecha_marca', `${fechaDia}T00:00:00`).lte('fecha_marca', `${fechaDia}T23:59:59`).order('fecha_marca', { ascending: true })
-        if (data && !error) setMarcasGPS(data); else setMarcasGPS([])
-      } catch { setMarcasGPS([]) }
+        // GPS
+        const { data: d2, error: e2 } = await supabase.from('marcaciones_gps').select('fecha_marca').eq('codigo_trabajador', codigo).gte('fecha_marca', `${fechaDia}T00:00:00`).lte('fecha_marca', `${fechaDia}T23:59:59`)
+        if (d2 && !e2) {
+          d2.forEach(m => {
+            const h = new Date(m.fecha_marca).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' })
+            marcas.push({ hora: h, dispositivo: 'APP' })
+          })
+        }
+
+        // Sort and distinct
+        marcas.sort((a, b) => a.hora.localeCompare(b.hora))
+        const unicas = marcas.filter((m, index, self) => index === self.findIndex((t) => t.hora === m.hora && t.dispositivo === m.dispositivo))
+        setTodasLasMarcas(unicas)
+
+        if (!esEdicion) {
+          if (unicas.length > 0) {
+            setRealInicio(unicas[0].hora)
+            setDispositivoInicio(unicas[0].dispositivo)
+            if (unicas.length > 1) {
+              setRealFin(unicas[unicas.length - 1].hora)
+              setDispositivoFin(unicas[unicas.length - 1].dispositivo)
+            } else {
+              setRealFin('')
+              setDispositivoFin('')
+            }
+          } else {
+            setRealInicio('')
+            setRealFin('')
+            setDispositivoInicio('')
+            setDispositivoFin('')
+          }
+        }
+      } catch (e) {
+        setMarcaCargada(false)
+        setTodasLasMarcas([])
+      }
     }
-    cargarMarcasGPS()
-  }, [fechaDia, codigo, cargandoDatos])
+    cargarMarcas()
+  }, [fechaDia, codigo, cargandoDatos, esEdicion])
 
   // Calculation preview
   const previewCalculo = useMemo(() => {
@@ -283,14 +330,22 @@ function NewRequest() {
         <form onSubmit={guardarRegistro} className="p-5 space-y-5">
           {/* Row 1: Type + Req */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
+            <div className="md:col-span-1">
               <label className={labelCls}>Tipo de Solicitud</label>
-              <select className={`${inputCls} font-medium ${esEdicion ? disabledCls : ''}`} value={tipoSolicitud} onChange={(e) => setTipoSolicitud(e.target.value)} required disabled={esEdicion}>
-                <option value="">Seleccione el tipo...</option>
-                {opcionesSolicitud.map(op => <option key={op} value={op}>{op}</option>)}
+              <select className={`${inputCls} font-medium ${esEdicion ? disabledCls : ''}`} value={tipoCompensacion} onChange={(e) => { setTipoCompensacion(e.target.value); setTipoSolicitud(''); }} required disabled={esEdicion}>
+                <option value="">Seleccione...</option>
+                <option value="COMPENSACIÓN A FAVOR DE CIPSA">FAVOR DE CIPSA</option>
+                <option value="COMPENSACIÓN A FAVOR DEL TÉCNICO">FAVOR DEL TÉCNICO</option>
               </select>
             </div>
-            <div>
+            <div className="md:col-span-1">
+              <label className={labelCls}>Caso</label>
+              <select className={`${inputCls} font-medium ${esEdicion ? disabledCls : ''}`} value={tipoSolicitud} onChange={(e) => setTipoSolicitud(e.target.value)} required disabled={esEdicion || !tipoCompensacion}>
+                <option value="">Seleccione el caso...</option>
+                {opcionesActuales.map(op => <option key={op} value={op}>{op}</option>)}
+              </select>
+            </div>
+            <div className="md:col-span-1">
               <label className={labelCls}>Requerimiento</label>
               <input className={`${inputCls} ${configUI.reqDisabled ? disabledCls : ''}`} type="text" placeholder={configUI.reqDisabled ? "N/A" : "Ej. 202*******"} value={requerimiento} onChange={(e) => setRequerimiento(e.target.value)} disabled={configUI.reqDisabled} />
             </div>
@@ -399,62 +454,71 @@ function NewRequest() {
                 </div>
               </div>
 
-              {/* Trakker marks */}
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 border-l-4 border-l-corporate-green rounded-2xl p-4">
+              {/* All Marks */}
+              <div className="bg-gradient-to-br from-gray-50 to-slate-50 border border-gray-200 border-l-4 border-l-corporate-blue rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <Satellite size={18} className="text-green-600" />
-                  <strong className="text-xs text-green-700 tracking-wider uppercase">Marcación Trakker</strong>
-                  {marcaCargada && <span className="text-[10px] bg-corporate-green text-white px-2 py-0.5 rounded-full font-bold">AUTO</span>}
+                  <Clock size={18} className="text-corporate-blue" />
+                  <strong className="text-xs text-corporate-blue tracking-wider uppercase">Registro de Marcaciones</strong>
+                  {todasLasMarcas.length > 0 && <span className="text-[10px] bg-corporate-blue text-white px-2 py-0.5 rounded-full font-bold">{todasLasMarcas.length}</span>}
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex flex-col gap-2 flex-1">
-                    <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-2.5 border border-gray-200">
-                      <span className="text-xs font-semibold text-green-600 min-w-[90px]">Primera marca</span>
-                      <span className="text-gray-300">│</span>
-                      <input type="time" className="no-clock-icon border-none p-0 font-mono text-sm font-extrabold text-gray-600 bg-transparent flex-1 outline-none shadow-none cursor-not-allowed" value={realInicio} readOnly required />
-                    </div>
-                    <select className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none bg-white" value={dispositivoInicio} onChange={e => setDispositivoInicio(e.target.value)} required={!esEdicion}>
-                      <option value="">Disp. Inicio...</option><option value="TRAKKER">TRAKKER</option><option value="APP">APP</option>
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-2 flex-1">
-                    <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-2.5 border border-gray-200">
-                      <span className="text-xs font-semibold text-red-600 min-w-[90px]">Última marca</span>
-                      <span className="text-gray-300">│</span>
-                      <input type="time" className="no-clock-icon border-none p-0 font-mono text-sm font-extrabold text-gray-600 bg-transparent flex-1 outline-none shadow-none cursor-not-allowed" value={realFin} readOnly required />
-                    </div>
-                    <select className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none bg-white" value={dispositivoFin} onChange={e => setDispositivoFin(e.target.value)} required={!esEdicion}>
-                      <option value="">Disp. Fin...</option><option value="TRAKKER">TRAKKER</option><option value="APP">APP</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* GPS marks */}
-              {marcasGPS.length > 0 && (
-                <div className="bg-gradient-to-br from-blue-50 to-sky-50 border border-blue-200 border-l-4 border-l-blue-500 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Smartphone size={18} className="text-blue-600" />
-                    <strong className="text-xs text-blue-700 tracking-wider uppercase">Marcaciones App Móvil</strong>
-                    <span className="text-[10px] bg-blue-500 text-white px-2 py-0.5 rounded-full font-bold">{marcasGPS.length}</span>
-                  </div>
+                
+                {todasLasMarcas.length === 0 ? (
+                  <div className="text-center py-4 text-sm text-gray-500">No hay marcaciones registradas para este día.</div>
+                ) : (
                   <div className="flex flex-col gap-2">
-                    {marcasGPS.map((m, i) => {
-                      const hora = new Date(m.fecha_marca).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' })
+                    {/* Header */}
+                    <div className="flex items-center gap-3 px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      <span className="flex-1">Hora / Disp.</span>
+                      <span className="w-16 text-center text-green-600">Inicio</span>
+                      <span className="w-16 text-center text-red-600">Fin</span>
+                    </div>
+                    {todasLasMarcas.map((m, i) => {
+                      const isInicio = realInicio === m.hora && dispositivoInicio === m.dispositivo;
+                      const isFin = realFin === m.hora && dispositivoFin === m.dispositivo;
+
                       return (
-                        <div key={i} className="flex items-center gap-3 bg-white rounded-xl px-4 py-2.5 border border-gray-200 text-sm">
-                          <span className="font-mono font-extrabold text-blue-700 min-w-[45px]">{hora}</span>
-                          <span className="text-gray-300">│</span>
-                          <span className={`font-semibold ${m.observacion?.toUpperCase().includes('ENTRADA') ? 'text-green-600' : m.observacion?.toUpperCase().includes('SALIDA') ? 'text-red-600' : 'text-gray-600'}`}>
-                            {m.observacion || '—'}
-                          </span>
-                          {m.cliente && <span className="ml-auto text-[11px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-lg font-medium">&#x1F4CD; {m.cliente}</span>}
+                        <div key={i} className={`flex items-center gap-3 bg-white rounded-xl px-4 py-2.5 border text-sm transition-colors
+                          ${isInicio && isFin ? 'border-purple-300 bg-purple-50' : isInicio ? 'border-green-300 bg-green-50' : isFin ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                          <div className="flex items-center gap-3 flex-1">
+                            <span className="font-mono font-extrabold text-gray-700 min-w-[45px]">{m.hora}</span>
+                            <span className="text-gray-300">│</span>
+                            <span className="font-semibold text-xs text-gray-500 truncate flex items-center gap-1">
+                              {m.dispositivo === 'TRAKKER' ? <Satellite size={12} className="text-gray-400" /> : <Smartphone size={12} className="text-gray-400" />}
+                              {m.dispositivo}
+                            </span>
+                          </div>
+                          <div className="w-16 flex justify-center">
+                            <input 
+                              type="radio" 
+                              name="marca_inicio" 
+                              className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500 cursor-pointer"
+                              checked={isInicio}
+                              onChange={() => {
+                                setRealInicio(m.hora);
+                                setDispositivoInicio(m.dispositivo);
+                              }}
+                              disabled={esEdicion}
+                            />
+                          </div>
+                          <div className="w-16 flex justify-center">
+                            <input 
+                              type="radio" 
+                              name="marca_fin" 
+                              className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500 cursor-pointer"
+                              checked={isFin}
+                              onChange={() => {
+                                setRealFin(m.hora);
+                                setDispositivoFin(m.dispositivo);
+                              }}
+                              disabled={esEdicion}
+                            />
+                          </div>
                         </div>
                       )
                     })}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Calculation preview */}
               <div>
