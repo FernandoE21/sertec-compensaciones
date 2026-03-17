@@ -343,9 +343,9 @@ function NewRequest() {
                 required 
                 disabled={esEdicion}
               >
-                <option value="">Seleccione...</option>
-                <option value="COMPENSACIÓN A FAVOR DE CIPSA">FAVOR DE CIPSA (RESTAR)</option>
-                <option value="COMPENSACIÓN A FAVOR DEL TÉCNICO">FAVOR DEL TÉCNICO (SUMAR)</option>
+                <option value="" className="bg-white text-gray-900">Seleccione...</option>
+                <option value="COMPENSACIÓN A FAVOR DE CIPSA" className="bg-white text-gray-900">FAVOR DE CIPSA (RESTAR)</option>
+                <option value="COMPENSACIÓN A FAVOR DEL TÉCNICO" className="bg-white text-gray-900">FAVOR DEL TÉCNICO (SUMAR)</option>
               </select>
             </div>
             <div className="md:col-span-1">
