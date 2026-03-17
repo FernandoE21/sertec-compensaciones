@@ -350,9 +350,31 @@ function NewRequest() {
             </div>
             <div className="md:col-span-1">
               <label className={labelCls}>Caso</label>
-              <select className={`${inputCls} font-medium ${esEdicion ? disabledCls : ''}`} value={tipoSolicitud} onChange={(e) => setTipoSolicitud(e.target.value)} required disabled={esEdicion || !tipoCompensacion}>
-                <option value="">Seleccione el caso...</option>
-                {opcionesActuales.map(op => <option key={op} value={op}>{op}</option>)}
+              <select 
+                className={`${inputCls} font-medium ${esEdicion ? disabledCls : ''} ${
+                  tipoCompensacion === 'COMPENSACIÓN A FAVOR DE CIPSA' ? '!text-red-700 !bg-red-50 !border-red-300' :
+                  tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO' ? '!text-emerald-700 !bg-emerald-50 !border-emerald-300' :
+                  ''
+                }`} 
+                value={tipoSolicitud} 
+                onChange={(e) => setTipoSolicitud(e.target.value)} 
+                required 
+                disabled={esEdicion || !tipoCompensacion}
+              >
+                <option value="" className="bg-white text-gray-900">Seleccione el caso...</option>
+                {opcionesActuales.map(op => (
+                  <option 
+                    key={op} 
+                    value={op} 
+                    className={`bg-white ${
+                      tipoCompensacion === 'COMPENSACIÓN A FAVOR DE CIPSA' ? 'text-red-700 font-semibold' : 
+                      tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO' ? 'text-emerald-700 font-semibold' : 
+                      'text-gray-900'
+                    }`}
+                  >
+                    {op}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="md:col-span-1">
