@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Login from './pages/Login.jsx'
 import UserRecords from './pages/UserRecords.jsx'
-import UserNewRecordsList from './pages/UserNewRecordsList.jsx'
 import NewRequest from './pages/NewRequest.jsx'
 import NewRecord from './pages/NewRecord.jsx'
 import AdminDashboard from './pages/AdminDashboard.jsx'
@@ -33,7 +32,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/nuevo-registro/:codigo" element={<NewRequest />} />
           <Route path="/editar-registro/:codigo/:nroRegistro" element={<NewRequest />} />
           {/* New Module Routes */}
-          <Route path="/registros-reales/:codigo" element={<UserNewRecordsList />} />
           <Route path="/crear-registro/:codigo" element={<NewRecord />} />
           <Route path="/editar-nuevo-registro/:codigo/:nroRegistro" element={<NewRecord />} />
         </Route>

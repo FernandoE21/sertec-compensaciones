@@ -22,11 +22,32 @@ function UserRecords() {
 
   const fetchRegistros = async () => {
     setLoading(true)
-    let query = supabase.from('registro_horas').select('*').eq('codigo_trabajador', codigo).order('id', { ascending: false })
-    if (desde) query = query.gte('fecha_hora_inicio', desde)
-    if (hasta) query = query.lte('fecha_hora_inicio', hasta + ' 23:59:59')
-    const { data, error } = await query
-    if (!error) setRegistros(data)
+    const query1 = supabase.from('registro_horas').select('*').eq('codigo_trabajador', codigo)
+    const query2 = supabase.from('nuevo_registro_horas').select('*').eq('codigo_trabajador', codigo)
+    
+    const [res1, res2] = await Promise.all([query1, query2])
+    
+    let combined = []
+    if (!res1.error && res1.data) {
+      combined = [...combined, ...res1.data.map(d => ({ ...d, _origen: 'solicitud' }))]
+    }
+    if (!res2.error && res2.data) {
+      combined = [...combined, ...res2.data.map(d => ({ ...d, _origen: 'registro' }))]
+    }
+
+    if (desde) {
+      const desdeDate = new Date(desde + 'T00:00:00').getTime()
+      combined = combined.filter(d => new Date(d.fecha_hora_inicio).getTime() >= desdeDate)
+    }
+    if (hasta) {
+      const hastaDate = new Date(hasta + 'T23:59:59').getTime()
+      combined = combined.filter(d => new Date(d.fecha_hora_inicio).getTime() <= hastaDate)
+    }
+
+    // Sort by fecha_hora_inicio descending, fallback to id descending
+    combined.sort((a, b) => new Date(b.fecha_hora_inicio).getTime() - new Date(a.fecha_hora_inicio).getTime() || b.id - a.id)
+
+    setRegistros(combined)
     setLoading(false)
   }
 
@@ -44,11 +65,16 @@ function UserRecords() {
   // Balance
   const resumenHoras = useMemo(() => {
     let minutosFavor = 0, minutosContra = 0
-    const tiposFavor = ["COMPENSACIÓN POR TRASLADO DE VIAJE", "COMPENSACIÓN POR TRASLADO DE VIAJE - CONDUCTOR", "COMPENSACIÓN POR TRASLADO DE VIAJE - COPILOTO", "COMPENSACIÓN POR TRASLADO DE EQUIPOS", "SOBRETIEMPO EN CLIENTE", "SOBRETIEMPO EN SERTEC", "SOBRETIEMPO POR TRASLADO DE VIAJE"]
-    const tiposContra = ["COMPENSACIÓN A FAVOR DE SERTEC", "POR SALIDAS ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO"]
+    const tiposContra = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS"]
+    const tiposFavor = ["POR TRASLADO DE VIAJE", "POR TRASLADO DE EQUIPOS", "SOBRETIEMPO"]
+    
     registros.forEach(reg => {
+      // ONLY calculate if the record is either _origen === 'registro' (unless Rechazado) OR (_origen === 'solicitud' && estado === 'Aprobado')
       if (reg.estado === 'Rechazado') return
+      if (reg._origen === 'solicitud' && reg.estado !== 'Aprobado') return
+
       const minutos = (new Date(reg.fecha_hora_fin) - new Date(reg.fecha_hora_inicio)) / 60000
+      
       if (tiposFavor.includes(reg.tipo_solicitud)) minutosFavor += minutos
       else if (tiposContra.includes(reg.tipo_solicitud)) minutosContra += minutos
     })
@@ -63,19 +89,22 @@ function UserRecords() {
   const calcularHorasFila = (reg) => {
     const diffMins = (new Date(reg.fecha_hora_fin) - new Date(reg.fecha_hora_inicio)) / 60000
     const texto = fmt(diffMins)
-    const tiposFavor = ["COMPENSACIÓN POR TRASLADO DE VIAJE", "COMPENSACIÓN POR TRASLADO DE VIAJE - CONDUCTOR", "COMPENSACIÓN POR TRASLADO DE VIAJE - COPILOTO", "COMPENSACIÓN POR TRASLADO DE EQUIPOS", "SOBRETIEMPO EN CLIENTE", "SOBRETIEMPO EN SERTEC", "SOBRETIEMPO POR TRASLADO DE VIAJE"]
-    const tiposContra = ["COMPENSACIÓN A FAVOR DE SERTEC", "POR SALIDAS ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO"]
+    const tiposContra = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS"]
+    const tiposFavor = ["POR TRASLADO DE VIAJE", "POR TRASLADO DE EQUIPOS", "SOBRETIEMPO"]
+    
     if (tiposFavor.includes(reg.tipo_solicitud)) return <span className="inline-block bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-xs font-bold">+{texto}</span>
     if (tiposContra.includes(reg.tipo_solicitud)) return <span className="inline-block bg-red-50 text-red-700 px-2 py-0.5 rounded-full text-xs font-bold">-{texto}</span>
     return <span className="text-gray-500 text-xs">{texto}</span>
   }
 
-  const eliminarRegistro = async (nro) => {
+  const eliminarRegistro = async (nro, origen = 'solicitud') => {
     const result = await Swal.fire({ title: '¿Eliminar?', text: "No se puede deshacer", icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Sí, eliminar' })
     if (result.isConfirmed) {
-      const reg = registros.find(r => r.nro_registro === nro)
-      await supabase.from('registro_horas').delete().eq('nro_registro', nro)
-      logBitacora({ usuario: codigo, tipo_usuario: 'empleado', accion: 'eliminar', modulo: 'registro_horas', descripcion: `Eliminó solicitud #${nro} (${reg?.tipo_solicitud || ''})`, registro_id: String(nro), datos_anteriores: reg ? { tipo: reg.tipo_solicitud, estado: reg.estado, fecha: reg.fecha_solicitud } : null })
+      const dbTable = origen === 'registro' ? 'nuevo_registro_horas' : 'registro_horas'
+      const reg = registros.find(r => r.nro_registro === nro && r._origen === origen)
+      await supabase.from(dbTable).delete().eq('nro_registro', nro)
+      const moduleId = origen === 'registro' ? 'nuevo_registro_horas' : 'registro_horas'
+      logBitacora({ usuario: codigo, tipo_usuario: 'empleado', accion: 'eliminar', modulo: moduleId, descripcion: `Eliminó ${origen} #${nro} (${reg?.tipo_solicitud || ''})`, registro_id: String(nro), datos_anteriores: reg ? { tipo: reg.tipo_solicitud, estado: reg.estado || null, fecha: reg.fecha_solicitud || null } : null })
       Swal.fire('Eliminado', '', 'success')
       setRegistroDetalle(null)
       fetchRegistros()
@@ -187,7 +216,16 @@ function UserRecords() {
                   <td className="py-3 px-3 text-center font-mono text-xs text-gray-500">{String(reg.nro_registro).padStart(6, '0')}</td>
                   <td className="py-3 px-3 text-gray-700">{new Date(reg.fecha_hora_inicio).toLocaleDateString()}</td>
                   <td className="py-3 px-3 text-xs text-gray-400">{new Date(reg.created_at).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
-                  <td className="py-3 px-3 text-xs text-gray-700">{reg.tipo_solicitud}</td>
+                  <td className="py-3 px-3 text-xs text-gray-700">
+                    <div className="flex flex-col gap-1 items-start">
+                      <span>{reg.tipo_solicitud}</span>
+                      {reg._origen === 'solicitud' ? (
+                        <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Solicitud</span>
+                      ) : (
+                        <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Registro</span>
+                      )}
+                    </div>
+                  </td>
                   <td className="py-3 px-3 text-center">{calcularHorasFila(reg)}</td>
                   <td className="py-3 px-3 text-xs text-gray-500">{reg.requerimiento || '-'}</td>
                   <td className="py-3 px-3 text-center">
@@ -202,10 +240,10 @@ function UserRecords() {
                       </button>
                       {reg.estado === 'Pendiente' && (
                         <>
-                          <button onClick={() => navigate(`/editar-registro/${codigo}/${reg.nro_registro}`)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors border-none cursor-pointer" title="Editar">
+                          <button onClick={() => navigate(reg._origen === 'registro' ? `/editar-nuevo-registro/${codigo}/${reg.nro_registro}` : `/editar-registro/${codigo}/${reg.nro_registro}`)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors border-none cursor-pointer" title="Editar">
                             <Pencil size={14} />
                           </button>
-                          <button onClick={() => eliminarRegistro(reg.nro_registro)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors border-none cursor-pointer" title="Eliminar">
+                          <button onClick={() => eliminarRegistro(reg.nro_registro, reg._origen)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors border-none cursor-pointer" title="Eliminar">
                             <Trash2 size={14} />
                           </button>
                         </>
@@ -243,10 +281,10 @@ function UserRecords() {
             </div>
             {registroDetalle.estado === 'Pendiente' && (
               <div className="mt-5 flex gap-3 justify-end border-t border-gray-200 pt-4">
-                <button onClick={() => { setRegistroDetalle(null); navigate(`/editar-registro/${codigo}/${registroDetalle.nro_registro}`) }} className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 text-white text-sm font-bold rounded-xl border-none cursor-pointer hover:bg-amber-600 transition-colors">
+                <button onClick={() => { setRegistroDetalle(null); navigate(registroDetalle._origen === 'registro' ? `/editar-nuevo-registro/${codigo}/${registroDetalle.nro_registro}` : `/editar-registro/${codigo}/${registroDetalle.nro_registro}`) }} className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 text-white text-sm font-bold rounded-xl border-none cursor-pointer hover:bg-amber-600 transition-colors">
                   <Pencil size={14} /> Editar
                 </button>
-                <button onClick={() => eliminarRegistro(registroDetalle.nro_registro)} className="flex items-center gap-1.5 px-4 py-2 bg-red-500 text-white text-sm font-bold rounded-xl border-none cursor-pointer hover:bg-red-600 transition-colors">
+                <button onClick={() => eliminarRegistro(registroDetalle.nro_registro, registroDetalle._origen)} className="flex items-center gap-1.5 px-4 py-2 bg-red-500 text-white text-sm font-bold rounded-xl border-none cursor-pointer hover:bg-red-600 transition-colors">
                   <Trash2 size={14} /> Eliminar
                 </button>
               </div>
