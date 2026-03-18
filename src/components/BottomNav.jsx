@@ -17,8 +17,10 @@ function UserSidebar({ codigo }) {
   const location = useLocation()
 
   const links = [
-    { label: 'Mis Registros', icon: ClipboardList, path: `/registros/${codigo}` },
+    { label: 'Mis Solicitudes', icon: ClipboardList, path: `/registros/${codigo}` },
     { label: 'Nueva Solicitud', icon: PlusCircle, path: `/nuevo-registro/${codigo}` },
+    { label: 'Mis Nuevos Registros', icon: ClipboardList, path: `/registros-reales/${codigo}` },
+    { label: 'Nuevo Registro', icon: PlusCircle, path: `/crear-registro/${codigo}` },
   ]
 
   const handleNavigate = (path) => {
