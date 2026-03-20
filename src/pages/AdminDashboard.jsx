@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import Swal from 'sweetalert2'
-import { Search, UserPlus, Settings, Save, CheckCircle, X, ExternalLink, Pencil } from 'lucide-react'
+import { Search, UserPlus, Settings, Save, CheckCircle, X, ExternalLink, Pencil, KeyRound, Trash2, ShieldAlert } from 'lucide-react'
 import { logBitacora } from '../utils/bitacora'
 
 function AdminDashboard() {
@@ -55,12 +55,131 @@ function AdminDashboard() {
     setGuardandoConfig(false)
     if (error) { Swal.fire('Error', error.message, 'error') }
     else {
-      const adminUsuario = sessionStorage.getItem('admin_usuario') || 'admin'
+      const adminUsuario = sessionStorage.getItem('adminUser') || 'admin'
       logBitacora({ usuario: adminUsuario, tipo_usuario: 'admin', accion: 'config', modulo: 'configuracion', descripcion: `Cambió fecha corte onomástico de ${fechaCorteOriginal} a ${fechaCorte}`, datos_anteriores: { fecha_corte: fechaCorteOriginal }, datos_nuevos: { fecha_corte: fechaCorte } })
       setFechaCorteOriginal(fechaCorte)
       Swal.fire({ title: '¡Actualizado!', text: `Fecha de corte cambiada a ${new Date(fechaCorte + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`, icon: 'success', timer: 2000, showConfirmButton: false })
     }
   }
+
+  const verificarAdminPassword = async () => {
+    const adminUser = sessionStorage.getItem('adminUser');
+    if (!adminUser) {
+      Swal.fire('Error', 'Sesión de administrador no válida.', 'error');
+      return false;
+    }
+
+    const { value: password } = await Swal.fire({
+      title: 'Verificación de Seguridad',
+      text: 'Por favor, ingrese su contraseña de administrador para continuar.',
+      icon: 'warning',
+      input: 'password',
+      inputPlaceholder: 'Contraseña de administrador',
+      showCancelButton: true,
+      confirmButtonText: 'Verificar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#3085d6',
+      inputValidator: (value) => {
+        if (!value) return '¡Debe ingresar su contraseña!';
+      }
+    });
+
+    if (!password) return false;
+
+    const { data, error } = await supabase
+      .from('administradores')
+      .select('password')
+      .eq('usuario', adminUser)
+      .single();
+
+    if (error || !data || data.password !== password) {
+      Swal.fire('Error', 'Contraseña incorrecta', 'error');
+      return false;
+    }
+    return true;
+  };
+
+  const handleCambiarPassword = async (p) => {
+    const isVerified = await verificarAdminPassword();
+    if (!isVerified) return;
+
+    const { value: newPassword } = await Swal.fire({
+      title: `Cambiar contraseña de ${p.nombres}`,
+      input: 'password',
+      inputLabel: 'Ingrese la nueva contraseña',
+      inputPlaceholder: 'Nueva contraseña',
+      showCancelButton: true,
+      confirmButtonText: 'Guardar',
+      cancelButtonText: 'Cancelar',
+      inputValidator: (value) => {
+        if (!value) return '¡La contraseña no puede estar vacía!';
+        if (value.length < 6) return '¡La contraseña debe tener al menos 6 caracteres!';
+      }
+    });
+
+    if (!newPassword) return;
+
+    const { error } = await supabase
+      .from('personal')
+      .update({ password: newPassword })
+      .eq('codigo', p.codigo);
+
+    if (error) {
+      Swal.fire('Error', error.message, 'error');
+    } else {
+      const adminUser = sessionStorage.getItem('adminUser') || 'admin';
+      logBitacora({
+        usuario: adminUser,
+        tipo_usuario: 'admin',
+        accion: 'update',
+        modulo: 'personal',
+        descripcion: `Cambio de contraseña del usuario ${p.apellidos}, ${p.nombres} (${p.codigo})`,
+        datos_anteriores: null,
+        datos_nuevos: { codigo: p.codigo }
+      });
+      Swal.fire('¡Actualizado!', 'La contraseña ha sido cambiada de forma segura.', 'success');
+    }
+  };
+
+  const handleEliminarUsuario = async (p) => {
+    const isVerified = await verificarAdminPassword();
+    if (!isVerified) return;
+
+    const result = await Swal.fire({
+      title: '¿Está seguro de eliminar este usuario?',
+      text: `Se eliminará permanentemente a ${p.nombres} ${p.apellidos} (${p.codigo}). ¡Esta acción no se puede deshacer!`,
+      icon: 'error',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (!result.isConfirmed) return;
+
+    const { error } = await supabase
+      .from('personal')
+      .delete()
+      .eq('codigo', p.codigo);
+
+    if (error) {
+      Swal.fire('Error', error.message, 'error');
+    } else {
+      setPersonal(prev => prev.filter(user => user.codigo !== p.codigo));
+      const adminUser = sessionStorage.getItem('adminUser') || 'admin';
+      logBitacora({
+        usuario: adminUser,
+        tipo_usuario: 'admin',
+        accion: 'delete',
+        modulo: 'personal',
+        descripcion: `Eliminó al usuario ${p.apellidos}, ${p.nombres} (${p.codigo})`,
+        datos_anteriores: { codigo: p.codigo, nombres: p.nombres, apellidos: p.apellidos },
+        datos_nuevos: null
+      });
+      Swal.fire('¡Eliminado!', 'El usuario ha sido eliminado exitosamente.', 'success');
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -193,6 +312,20 @@ function AdminDashboard() {
                       className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-50 text-gray-600 hover:bg-indigo-500 hover:text-white rounded-lg text-[11px] font-semibold transition-all border border-gray-200 hover:border-transparent cursor-pointer"
                     >
                       Registros <ExternalLink size={12} />
+                    </button>
+                    <button
+                      onClick={() => handleCambiarPassword(p)}
+                      title="Cambiar Contraseña"
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
+                    >
+                      <KeyRound size={12} />
+                    </button>
+                    <button
+                      onClick={() => handleEliminarUsuario(p)}
+                      title="Eliminar Usuario"
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
+                    >
+                      <Trash2 size={12} />
                     </button>
                   </div>
                 </td>
