@@ -153,7 +153,7 @@ function NewRecord() {
       }
       setTipoSolicitud(data.tipo_solicitud); setLugarTrabajo(data.lugar_trabajo); setTipoMarcacion(data.tipo_de_marcacion)
       setDispositivoInicio(data.dispositivo_inicio || ''); setDispositivoFin(data.dispositivo_fin || '');
-      setDiaACompensar(data.dia_a_compensar || ''); setDiaExtras(data.dia_extras || '');
+      setDiaACompensar(data.dia_a_compensar || ''); setDiaExtras(data.dia_extras_registradas || '');
       setRequerimiento(data.requerimiento || ''); setMotivo(data.motivo || '')
       if (data.tipo_solicitud === 'ONOMÁSTICO' && data.fecha_hora_inicio) {
         const d = new Date(data.fecha_hora_inicio); const offset = d.getTimezoneOffset()
@@ -284,7 +284,7 @@ function NewRecord() {
       const absMins = Math.abs(previewCalculo.mins)
       fInicio = new Date(`${fechaDia}T${realInicio}:00`); fFin = new Date(fInicio.getTime() + (absMins * 60000))
     } else { fInicio = new Date(`${fechaDia}T${realInicio}:00`); fFin = new Date(`${fechaDia}T${realInicio}:00`) }
-    const payload = { nombre_empleado: trabajador ? `${trabajador.nombres} ${trabajador.apellidos}` : '', codigo_trabajador: codigo, area: trabajador?.area, cargo: trabajador?.cargo, tipo_solicitud: tipoSolicitud, requerimiento, motivo, lugar_trabajo: lugarTrabajo, tipo_de_marcacion: tipoMarcacion, dispositivo_inicio: dispositivoInicio, dispositivo_fin: dispositivoFin, dia_a_compensar: diaACompensar, dia_extras: diaExtras, fecha_hora_inicio: fInicio, fecha_hora_fin: fFin, ingreso: new Date(`${fechaDia}T${realInicio}:00`), salida: new Date(`${fechaDia}T${realFin}:00`), estado: 'Pendiente' }
+    const payload = { nombre_empleado: trabajador ? `${trabajador.nombres} ${trabajador.apellidos}` : '', codigo_trabajador: codigo, area: trabajador?.area, cargo: trabajador?.cargo, tipo_solicitud: tipoSolicitud, requerimiento, motivo, lugar_trabajo: lugarTrabajo, tipo_de_marcacion: tipoMarcacion, dispositivo_inicio: dispositivoInicio, dispositivo_fin: dispositivoFin, dia_a_compensar: diaACompensar, dia_extras_registradas: diaExtras, fecha_hora_inicio: fInicio, fecha_hora_fin: fFin, ingreso: new Date(`${fechaDia}T${realInicio}:00`), salida: new Date(`${fechaDia}T${realFin}:00`), estado: 'Pendiente' }
     const { error } = esEdicion ? await supabase.from('nuevo_registro_horas').update(payload).eq('nro_registro', nroRegistro) : await supabase.from('nuevo_registro_horas').insert([payload])
     setEnviando(false)
     if (error) Swal.fire('Error', error.message, 'error')
