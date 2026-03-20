@@ -63,7 +63,7 @@ function AdminDashboard() {
   }
 
   const verificarAdminPassword = async () => {
-    const adminUser = sessionStorage.getItem('adminUser');
+    const adminUser = sessionStorage.getItem('admin_usuario');
     if (!adminUser) {
       Swal.fire('Error', 'Sesión de administrador no válida.', 'error');
       return false;
@@ -127,9 +127,9 @@ function AdminDashboard() {
     if (error) {
       Swal.fire('Error', error.message, 'error');
     } else {
-      const adminUser = sessionStorage.getItem('adminUser') || 'admin';
+      const adminUsuario = sessionStorage.getItem('admin_usuario') || 'admin';
       logBitacora({
-        usuario: adminUser,
+        usuario: adminUsuario,
         tipo_usuario: 'admin',
         accion: 'update',
         modulo: 'personal',
@@ -167,9 +167,9 @@ function AdminDashboard() {
       Swal.fire('Error', error.message, 'error');
     } else {
       setPersonal(prev => prev.filter(user => user.codigo !== p.codigo));
-      const adminUser = sessionStorage.getItem('adminUser') || 'admin';
+      const adminUsuario = sessionStorage.getItem('admin_usuario') || 'admin';
       logBitacora({
-        usuario: adminUser,
+        usuario: adminUsuario,
         tipo_usuario: 'admin',
         accion: 'delete',
         modulo: 'personal',
