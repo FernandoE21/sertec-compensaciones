@@ -284,7 +284,26 @@ function NewRequest() {
       const absMins = Math.abs(previewCalculo.mins)
       fInicio = new Date(`${fechaDia}T${realInicio}:00`); fFin = new Date(fInicio.getTime() + (absMins * 60000))
     } else { fInicio = new Date(`${fechaDia}T${realInicio}:00`); fFin = new Date(`${fechaDia}T${realInicio}:00`) }
-    const payload = { nombre_empleado: trabajador ? `${trabajador.nombres} ${trabajador.apellidos}` : '', codigo_trabajador: codigo, area: trabajador?.area, cargo: trabajador?.cargo, tipo_solicitud: tipoSolicitud, requerimiento, motivo, lugar_trabajo: lugarTrabajo, tipo_de_marcacion: tipoMarcacion, dispositivo_inicio: dispositivoInicio, dispositivo_fin: dispositivoFin, dia_a_compensar: diaACompensar, dia_extras_registradas: diaExtras, fecha_hora_inicio: fInicio, fecha_hora_fin: fFin, ingreso: new Date(`${fechaDia}T${realInicio}:00`), salida: new Date(`${fechaDia}T${realFin}:00`), estado: 'Pendiente' }
+    const payload = { 
+      nombre_empleado: trabajador ? `${trabajador.nombres} ${trabajador.apellidos}` : '', 
+      codigo_trabajador: codigo, 
+      area: trabajador?.area, 
+      cargo: trabajador?.cargo, 
+      tipo_solicitud: tipoSolicitud, 
+      requerimiento, 
+      motivo, 
+      lugar_trabajo: lugarTrabajo, 
+      tipo_de_marcacion: tipoMarcacion, 
+      dispositivo_inicio: dispositivoInicio, 
+      dispositivo_fin: dispositivoFin, 
+      dia_a_compensar: diaACompensar || null, 
+      dia_extras_registradas: diaExtras || null, 
+      fecha_hora_inicio: fInicio, 
+      fecha_hora_fin: fFin, 
+      ingreso: new Date(`${fechaDia}T${realInicio}:00`), 
+      salida: new Date(`${fechaDia}T${realFin}:00`), 
+      estado: 'Pendiente' 
+    }
     const { error } = esEdicion ? await supabase.from('registro_horas').update(payload).eq('nro_registro', nroRegistro) : await supabase.from('registro_horas').insert([payload])
     setEnviando(false)
     if (error) Swal.fire('Error', error.message, 'error')
