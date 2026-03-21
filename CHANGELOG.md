@@ -7,7 +7,25 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
-## [18-Feb-2026] - GitHub Copilot (Claude Sonnet 4.5) - Actualización 4
+
+## [21-Mar-2026] - GitHub Copilot (Gemini 3.1 Pro Preview)
+
+### Agregados
+- ✅ **Horarios**: Nuevo módulo y panel en ruta \/admin-horarios\ (\AdminHorarios.jsx\) para visualizar distribución de personal por grupo de horario.
+- ✅ **Horarios**: Opción de selección de horario (grupo) implementada al dar de alta nuevos usuarios (\AdminAddPersonal.jsx\) y al editarlos (\AdminEditPersonal.jsx\).
+- ✅ **Panel de Control**: Columna de Horarios añadida con distintivos visuales en \AdminDashboard.jsx\.
+
+### Modificados
+- ✅ **DB y Mapeo**: Actualizado de uso incorrecto (\grupo_horario_id\) a la columna real en BD (\id_grupo_horario\).
+- ✅ **Nombres de Horarios**: Migración de formato largo a formato corto (\H1 - Rotativo\, \H2 - Admin\, etc.) vía script \ix-db.cjs\ para un entorno de UI más limpio.
+- ✅ **Asignación Masiva**: Script ejecutado directamente contra Supabase (\upsert\) conectando a la columna \id_grupo_horario\ a los diversos usuarios del equipo, limpiando los badges de \Sin Asignar\.
+- ✅ **Ramas Git**: Sincronización en masa de \production\ hacia \main\, \	rial\, \proxmox\.
+
+### Notas técnicas
+- Cuidado con refactorizaciones masivas que se lleven etiquetas de cierre JSX o alteren hooks \useEffect()\ ocasionando pantallazos blancos al copilar Vite (Manejado y resuelto dentro de la sesión rastreando contadores de \}\).
+
+
+ - GitHub Copilot (Claude Sonnet 4.5) - Actualización 4
 
 ### Agregados
 - ✅ **CLOUDFLARE-PAGES-SIMPLE.md** - Secciones de rendimiento y producción:
@@ -28,7 +46,25 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
-## [18-Feb-2026] - GitHub Copilot (Claude Sonnet 4.5) - Actualización 3
+
+## [21-Mar-2026] - GitHub Copilot (Gemini 3.1 Pro Preview)
+
+### Agregados
+- ✅ **Horarios**: Nuevo módulo y panel en ruta \/admin-horarios\ (\AdminHorarios.jsx\) para visualizar distribución de personal por grupo de horario.
+- ✅ **Horarios**: Opción de selección de horario (grupo) implementada al dar de alta nuevos usuarios (\AdminAddPersonal.jsx\) y al editarlos (\AdminEditPersonal.jsx\).
+- ✅ **Panel de Control**: Columna de Horarios añadida con distintivos visuales en \AdminDashboard.jsx\.
+
+### Modificados
+- ✅ **DB y Mapeo**: Actualizado de uso incorrecto (\grupo_horario_id\) a la columna real en BD (\id_grupo_horario\).
+- ✅ **Nombres de Horarios**: Migración de formato largo a formato corto (\H1 - Rotativo\, \H2 - Admin\, etc.) vía script \ix-db.cjs\ para un entorno de UI más limpio.
+- ✅ **Asignación Masiva**: Script ejecutado directamente contra Supabase (\upsert\) conectando a la columna \id_grupo_horario\ a los diversos usuarios del equipo, limpiando los badges de \Sin Asignar\.
+- ✅ **Ramas Git**: Sincronización en masa de \production\ hacia \main\, \	rial\, \proxmox\.
+
+### Notas técnicas
+- Cuidado con refactorizaciones masivas que se lleven etiquetas de cierre JSX o alteren hooks \useEffect()\ ocasionando pantallazos blancos al copilar Vite (Manejado y resuelto dentro de la sesión rastreando contadores de \}\).
+
+
+ - GitHub Copilot (Claude Sonnet 4.5) - Actualización 3
 
 ### Agregados
 - ✅ **CLOUDFLARE-PAGES-SIMPLE.md** - Guía simplificada paso a paso
@@ -51,7 +87,25 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
-## [18-Feb-2026] - GitHub Copilot (Claude Sonnet 4.5) - Actualización 2
+
+## [21-Mar-2026] - GitHub Copilot (Gemini 3.1 Pro Preview)
+
+### Agregados
+- ✅ **Horarios**: Nuevo módulo y panel en ruta \/admin-horarios\ (\AdminHorarios.jsx\) para visualizar distribución de personal por grupo de horario.
+- ✅ **Horarios**: Opción de selección de horario (grupo) implementada al dar de alta nuevos usuarios (\AdminAddPersonal.jsx\) y al editarlos (\AdminEditPersonal.jsx\).
+- ✅ **Panel de Control**: Columna de Horarios añadida con distintivos visuales en \AdminDashboard.jsx\.
+
+### Modificados
+- ✅ **DB y Mapeo**: Actualizado de uso incorrecto (\grupo_horario_id\) a la columna real en BD (\id_grupo_horario\).
+- ✅ **Nombres de Horarios**: Migración de formato largo a formato corto (\H1 - Rotativo\, \H2 - Admin\, etc.) vía script \ix-db.cjs\ para un entorno de UI más limpio.
+- ✅ **Asignación Masiva**: Script ejecutado directamente contra Supabase (\upsert\) conectando a la columna \id_grupo_horario\ a los diversos usuarios del equipo, limpiando los badges de \Sin Asignar\.
+- ✅ **Ramas Git**: Sincronización en masa de \production\ hacia \main\, \	rial\, \proxmox\.
+
+### Notas técnicas
+- Cuidado con refactorizaciones masivas que se lleven etiquetas de cierre JSX o alteren hooks \useEffect()\ ocasionando pantallazos blancos al copilar Vite (Manejado y resuelto dentro de la sesión rastreando contadores de \}\).
+
+
+ - GitHub Copilot (Claude Sonnet 4.5) - Actualización 2
 
 ### Agregados
 - ✅ **CLOUDFLARE-DEPLOY.md** - Guía completa de despliegue público con Cloudflare
@@ -82,7 +136,25 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ---
 
-## [18-Feb-2026] - GitHub Copilot (Claude Sonnet 4.5)
+
+## [21-Mar-2026] - GitHub Copilot (Gemini 3.1 Pro Preview)
+
+### Agregados
+- ✅ **Horarios**: Nuevo módulo y panel en ruta \/admin-horarios\ (\AdminHorarios.jsx\) para visualizar distribución de personal por grupo de horario.
+- ✅ **Horarios**: Opción de selección de horario (grupo) implementada al dar de alta nuevos usuarios (\AdminAddPersonal.jsx\) y al editarlos (\AdminEditPersonal.jsx\).
+- ✅ **Panel de Control**: Columna de Horarios añadida con distintivos visuales en \AdminDashboard.jsx\.
+
+### Modificados
+- ✅ **DB y Mapeo**: Actualizado de uso incorrecto (\grupo_horario_id\) a la columna real en BD (\id_grupo_horario\).
+- ✅ **Nombres de Horarios**: Migración de formato largo a formato corto (\H1 - Rotativo\, \H2 - Admin\, etc.) vía script \ix-db.cjs\ para un entorno de UI más limpio.
+- ✅ **Asignación Masiva**: Script ejecutado directamente contra Supabase (\upsert\) conectando a la columna \id_grupo_horario\ a los diversos usuarios del equipo, limpiando los badges de \Sin Asignar\.
+- ✅ **Ramas Git**: Sincronización en masa de \production\ hacia \main\, \	rial\, \proxmox\.
+
+### Notas técnicas
+- Cuidado con refactorizaciones masivas que se lleven etiquetas de cierre JSX o alteren hooks \useEffect()\ ocasionando pantallazos blancos al copilar Vite (Manejado y resuelto dentro de la sesión rastreando contadores de \}\).
+
+
+ - GitHub Copilot (Claude Sonnet 4.5)
 
 ### Agregados
 - ✅ **AI-CONTEXT.md** - Archivo con párrafos de inicio/final para IAs
@@ -188,3 +260,4 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Incluir fecha, quién hizo el cambio (IA o humano) y descripción clara
 - Mantener orden cronológico (más reciente arriba)
 - Usar emojis ✅ para completados, [ ] para pendientes
+
