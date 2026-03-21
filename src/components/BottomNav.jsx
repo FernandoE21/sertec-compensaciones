@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Menu, X, ClipboardList, PlusCircle, LogOut, Headset, Phone, Mail, KeyRound, Lock } from 'lucide-react'
+import { Menu, X, ClipboardList, PlusCircle, LogOut, Headset, Phone, Mail, KeyRound, Lock, UserCircle } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import Swal from 'sweetalert2'
 import { logBitacora } from '../utils/bitacora'
@@ -13,8 +13,62 @@ function UserSidebar({ codigo }) {
   const [passNueva, setPassNueva] = useState('')
   const [passConfirmar, setPassConfirmar] = useState('')
   const [cambiandoPass, setCambiandoPass] = useState(false)
+  const [userData, setUserData] = useState(null)
   const navigate = useNavigate()
   const location = useLocation()
+
+  useEffect(() => {
+    if (codigo) {
+      supabase.from('personal').select('*').eq('codigo', codigo).single().then(({data}) => {
+        if (data) setUserData(data)
+      })
+    }
+  }, [codigo])
+
+  const mostrarFotocheck = () => {
+    if (!userData) return
+    const STORAGE_URL = "https://pwzogtzcgcxiondlcfeo.supabase.co/storage/v1/object/public/fotos%20personal/"
+    const fotoUrl = userData.foto ? `${STORAGE_URL}${userData.foto}` : null
+
+    Swal.fire({
+      html: `
+        <div class="bg-corporate-blue rounded-t-2xl p-6 text-center relative overflow-hidden">
+          <div class="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
+          <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-corporate-green/20 rounded-full blur-xl"></div>
+          
+          <div class="relative z-10 w-24 h-24 rounded-full border-4 border-white/20 mx-auto mb-4 overflow-hidden bg-corporate-blue flex items-center justify-center shadow-lg">
+            ${fotoUrl ? `<img src="${fotoUrl}" class="w-full h-full object-cover" />` : `<span class="text-3xl font-bold text-white">${userData.nombres.charAt(0)}${userData.apellidos.charAt(0)}</span>`}
+          </div>
+          <h3 class="text-xl font-black text-white relative z-10 mb-1">${userData.nombres.split(' ')[0]} <br/> <span class="font-normal text-white/80">${userData.apellidos.split(' ')[0]}</span></h3>
+          <span class="inline-block bg-corporate-green text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest relative z-10 mt-2">${userData.cargo}</span>
+        </div>
+        <div class="p-6 bg-white space-y-4">
+          <div class="flex flex-col border-b border-gray-100 pb-3">
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-left">Código</span>
+            <span class="text-sm font-bold text-corporate-blue text-left flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-corporate-green"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> ${userData.codigo}</span>
+          </div>
+          <div class="flex flex-col border-b border-gray-100 pb-3">
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-left">Sección / Área</span>
+            <span class="text-sm font-semibold text-gray-700 text-left">${userData.seccion || 'No especificada'}</span>
+          </div>
+          <div class="flex flex-col pb-2">
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-left">DNI Identificación</span>
+            <span class="text-sm font-semibold text-gray-700 text-left">${userData.dni || 'No registrado'}</span>
+          </div>
+        </div>
+      `,
+      showConfirmButton: true,
+      confirmButtonText: 'Cerrar Fotocheck',
+      buttonsStyling: false,
+      padding: '0',
+      customClass: {
+         popup: '!rounded-2xl shadow-2xl border-none !overflow-hidden m-0 !p-0 w-80',
+         htmlContainer: '!m-0 !p-0',
+         actions: '!w-[85%] !mx-auto !mb-6 !mt-2 flex-col gap-2',
+         confirmButton: 'w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-sm rounded-xl border-none cursor-pointer m-0 transition-colors'
+      }
+    })
+  }
 
   const links = [
     { label: 'Mis Registros Integrados', icon: ClipboardList, path: `/registros/${codigo}` },
@@ -105,6 +159,24 @@ function UserSidebar({ codigo }) {
           })}
         </nav>
         <div className="p-3 border-t border-white/10 space-y-1">
+          {userData && (
+            <div 
+              onClick={mostrarFotocheck}
+              className="flex items-center gap-3 px-3 py-2 rounded-xl transition-all cursor-pointer hover:bg-white/10 mb-2 group w-full text-left"
+            >
+              <div className="w-9 h-9 rounded-full bg-corporate-green/20 overflow-hidden flex items-center justify-center border-2 border-transparent group-hover:border-corporate-green transition-all shrink-0">
+                {userData.foto ? (
+                  <img src={`https://pwzogtzcgcxiondlcfeo.supabase.co/storage/v1/object/public/fotos%20personal/${userData.foto}`} alt="avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-corporate-green font-bold text-xs">{userData.nombres.charAt(0)}{userData.apellidos.charAt(0)}</span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-white truncate">{userData.nombres.split(' ')[0]} {userData.apellidos.split(' ')[0]}</p>
+                <p className="text-[10px] text-white/50 truncate uppercase tracking-wider">{userData.cargo}</p>
+              </div>
+            </div>
+          )}
           <button
             onClick={() => setShowCambiarPass(true)}
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border-none cursor-pointer text-white/70 hover:bg-white/10 hover:text-white bg-transparent w-full"
@@ -153,8 +225,24 @@ function UserSidebar({ codigo }) {
                 )
               })}
             </nav>
-            <div className="p-3 border-t border-white/10 space-y-1">
-              <button
+            <div className="p-3 border-t border-white/10 space-y-1">                {userData && (
+                  <div 
+                    onClick={() => { setOpen(false); mostrarFotocheck(); }}
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl transition-all cursor-pointer hover:bg-white/10 mb-2 group w-full text-left border-none"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-corporate-green/20 overflow-hidden flex items-center justify-center border-2 border-transparent group-hover:border-corporate-green transition-all shrink-0">
+                      {userData.foto ? (
+                        <img src={`https://pwzogtzcgcxiondlcfeo.supabase.co/storage/v1/object/public/fotos%20personal/${userData.foto}`} alt="avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-corporate-green font-bold text-xs">{userData.nombres.charAt(0)}{userData.apellidos.charAt(0)}</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white truncate">{userData.nombres.split(' ')[0]} {userData.apellidos.split(' ')[0]}</p>
+                      <p className="text-[10px] text-white/50 truncate uppercase tracking-wider">{userData.cargo}</p>
+                    </div>
+                  </div>
+                )}              <button
                 onClick={() => { setOpen(false); setShowCambiarPass(true) }}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border-none cursor-pointer text-white/70 hover:bg-white/10 hover:text-white bg-transparent w-full"
               >

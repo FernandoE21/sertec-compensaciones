@@ -23,9 +23,16 @@ function AdminDashboard() {
   useEffect(() => {
     const fetchPersonal = async () => {
       setLoading(true)
+      const { data: horarios } = await supabase.from('grupos_horarios').select('*')
+      const horariosMap = horarios ? horarios.reduce((acc, h) => ({...acc, [h.id]: h.nombre}), {}) : {}
+
       const { data, error } = await supabase.from('personal').select('*').order('apellidos', { ascending: true })
       if (!error) {
-        setPersonal(data)
+        const dataConHorario = data.map(p => ({
+          ...p,
+          nombre_horario: p.id_grupo_horario ? (horariosMap[p.id_grupo_horario] || 'N/A') : 'Sin Asignar'
+        }))
+        setPersonal(dataConHorario)
         setListaSecciones([...new Set(data.map(p => p.seccion).filter(Boolean))].sort())
       }
       setLoading(false)
@@ -70,15 +77,30 @@ function AdminDashboard() {
     }
 
     const { value: password } = await Swal.fire({
-      title: 'Verificación de Seguridad',
-      text: 'Por favor, ingrese su contraseña de administrador para continuar.',
-      icon: 'warning',
+      html: `
+        <div class="bg-corporate-blue rounded-t-2xl p-6 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-3">
+             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-corporate-green"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </div>
+          <h3 class="text-xl font-black text-white">Verificación de Seguridad</h3>
+          <p class="text-white/50 text-sm mt-1">Ingrese su contraseña de administrador</p>
+        </div>
+      `,
       input: 'password',
       inputPlaceholder: 'Contraseña de administrador',
       showCancelButton: true,
       confirmButtonText: 'Verificar',
       cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#3085d6',
+      buttonsStyling: false,
+      padding: '0',
+      customClass: {
+        popup: '!rounded-2xl shadow-2xl border-none !overflow-hidden m-0 !p-0',
+        htmlContainer: '!m-0 !p-0',
+        input: '!w-[85%] !mx-auto !mt-6 !mb-2 px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all text-center flex',
+        actions: '!w-[85%] !mx-auto !mb-6 !mt-2 flex-col gap-2',
+        confirmButton: 'w-full py-3 bg-corporate-blue text-white font-bold text-sm rounded-xl border-none cursor-pointer m-0',
+        cancelButton: 'w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-sm rounded-xl border-none cursor-pointer m-0'
+      },
       inputValidator: (value) => {
         if (!value) return '¡Debe ingresar su contraseña!';
       }
@@ -104,13 +126,30 @@ function AdminDashboard() {
     if (!isVerified) return;
 
     const { value: newPassword } = await Swal.fire({
-      title: `Cambiar contraseña de ${p.nombres}`,
+      html: `
+        <div class="bg-corporate-blue rounded-t-2xl p-6 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-3">
+             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-corporate-green"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </div>
+          <h3 class="text-xl font-black text-white">Cambiar Contraseña</h3>
+          <p class="text-white/50 text-sm mt-1">Nueva contraseña para <br/> <strong>${p.nombres} ${p.apellidos}</strong></p>
+        </div>
+      `,
       input: 'password',
-      inputLabel: 'Ingrese la nueva contraseña',
-      inputPlaceholder: 'Nueva contraseña',
+      inputPlaceholder: 'Ingresa la nueva contraseña',
       showCancelButton: true,
       confirmButtonText: 'Guardar',
       cancelButtonText: 'Cancelar',
+      buttonsStyling: false,
+      padding: '0',
+      customClass: {
+        popup: '!rounded-2xl shadow-2xl border-none !overflow-hidden m-0 !p-0',
+        htmlContainer: '!m-0 !p-0',
+        input: '!w-[85%] !mx-auto !mt-6 !mb-2 px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all text-center flex',
+        actions: '!w-[85%] !mx-auto !mb-6 !mt-2 flex-col gap-2',
+        confirmButton: 'w-full py-3 bg-corporate-blue text-white font-bold text-sm rounded-xl border-none cursor-pointer m-0',
+        cancelButton: 'w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-sm rounded-xl border-none cursor-pointer m-0'
+      },
       inputValidator: (value) => {
         if (!value) return '¡La contraseña no puede estar vacía!';
         if (value.length < 6) return '¡La contraseña debe tener al menos 6 caracteres!';
@@ -146,14 +185,31 @@ function AdminDashboard() {
     if (!isVerified) return;
 
     const result = await Swal.fire({
-      title: '¿Está seguro de eliminar este usuario?',
-      text: `Se eliminará permanentemente a ${p.nombres} ${p.apellidos} (${p.codigo}). ¡Esta acción no se puede deshacer!`,
-      icon: 'error',
+      html: `
+        <div class="bg-red-500 rounded-t-2xl p-6 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-3">
+             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+          </div>
+          <h3 class="text-xl font-black text-white">Eliminar Usuario</h3>
+          <p class="text-white/90 text-sm mt-1">Se eliminará permanentemente a</p>
+          <p class="text-white font-bold text-sm mt-1">${p.nombres} ${p.apellidos} (${p.codigo})</p>
+        </div>
+        <div class="px-6 py-6 text-center text-gray-600 text-sm font-medium">
+          ¡Esta acción no se puede deshacer!
+        </div>
+      `,
       showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
       confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar'
+      cancelButtonText: 'Cancelar',
+      buttonsStyling: false,
+      padding: '0',
+      customClass: {
+        popup: '!rounded-2xl shadow-2xl border-none !overflow-hidden m-0 !p-0',
+        htmlContainer: '!m-0 !p-0',
+        actions: '!w-[85%] !mx-auto !mb-6 !mt-0 flex-col gap-2',
+        confirmButton: 'w-full py-3 bg-red-500 hover:bg-red-600 text-white font-bold text-sm rounded-xl border-none cursor-pointer m-0',
+        cancelButton: 'w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-sm rounded-xl border-none cursor-pointer m-0'
+      }
     });
 
     if (!result.isConfirmed) return;
@@ -268,8 +324,7 @@ function AdminDashboard() {
           <thead>
             <tr className="bg-corporate-blue text-white">
               <th className="py-3 px-4 text-left text-xs font-bold">Colaborador</th>
-              <th className="py-3 px-4 text-left text-xs font-bold">Cargo / Sección</th>
-              <th className="py-3 px-4 text-center text-xs font-bold w-36">Acciones</th>
+              <th className="py-3 px-4 text-left text-xs font-bold">Cargo / Sección</th>                <th className="py-3 px-4 text-left text-xs font-bold hidden md:table-cell">Horario</th>              <th className="py-3 px-4 text-center text-xs font-bold w-36">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -298,6 +353,11 @@ function AdminDashboard() {
                     <strong className="text-gray-600">{p.cargo}</strong><br />
                     <span className="text-indigo-500 text-[11px]">{p.seccion}</span>
                   </div>
+                </td>
+                <td className="py-3 px-4 hidden md:table-cell">
+                  <span className={`inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold ${p.nombre_horario === 'Sin Asignar' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-corporate-green'}`}>
+                    {p.nombre_horario}
+                  </span>
                 </td>
                 <td className="py-3 px-4 text-center">
                   <div className="flex gap-2 justify-center">
@@ -339,3 +399,4 @@ function AdminDashboard() {
 }
 
 export default AdminDashboard
+

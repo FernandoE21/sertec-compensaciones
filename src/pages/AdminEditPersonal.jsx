@@ -25,6 +25,8 @@ function AdminEditPersonal() {
   const [area, setArea] = useState('')
   const [fechaNacimiento, setFechaNacimiento] = useState('')
   const [fechaIngreso, setFechaIngreso] = useState('')
+  const [grupoHorarioId, setGrupoHorarioId] = useState('')
+  const [gruposHorarios, setGruposHorarios] = useState([])
 
   const PROJECT_URL = "https://pwzogtzcgcxiondlcfeo.supabase.co"
   const STORAGE_URL = `${PROJECT_URL}/storage/v1/object/public/fotos%20personal/`
@@ -76,7 +78,7 @@ function AdminEditPersonal() {
       setArea(data.area || '')
       setFechaNacimiento(data.fecha_nacimiento || '')
       setFechaIngreso(data.fecha_ingreso || '')
-      setFotoActual(data.foto || null)
+      setFotoActual(data.foto || null); setGrupoHorarioId(data.id_grupo_horario || '')
 
       if (data.foto) {
         setFotoPreview(`${STORAGE_URL}${data.foto}`)
@@ -89,7 +91,7 @@ function AdminEditPersonal() {
         .single()
       if (config) setFechaCorteOnomastico(config.valor)
 
-      setCargando(false)
+      const { data: horarios } = await supabase.from('grupos_horarios').select('*').order('id'); if (horarios) setGruposHorarios(horarios); setCargando(false)
     }
     cargarDatos()
   }, [codigoParam])
@@ -188,8 +190,8 @@ function AdminEditPersonal() {
       area: area || null,
       fecha_nacimiento: fechaNacimiento || null,
       fecha_ingreso: fechaIngreso || null,
-      foto: fotoNombre
-    }
+      foto: fotoNombre, id_grupo_horario: grupoHorarioId || null
+      }
 
     const { error } = await supabase
       .from('personal')
@@ -353,8 +355,8 @@ function AdminEditPersonal() {
         {/* Separador */}
         <div className="h-px bg-slate-200 my-5" />
 
-        {/* Datos laborales */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                {/* Datos laborales */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
           <div>
             <label className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1 block">Cargo</label>
             <select value={cargo} onChange={e => setCargo(e.target.value)}
@@ -379,12 +381,20 @@ function AdminEditPersonal() {
               {areasDisponibles.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
           </div>
+          <div>
+            <label className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1 flex items-center gap-1"><Clock size={12} /> Horario</label>
+            <select value={grupoHorarioId} onChange={e => setGrupoHorarioId(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all bg-white">
+              <option value="">Seleccionar...</option>
+              {gruposHorarios.map(h => <option key={h.id} value={h.id}>{h.nombre}</option>)}
+            </select>
+          </div>
         </div>
 
         {/* Fechas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <div>
-            <label className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1 flex items-center gap-1">
+            <label className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1 flex items-center gap-1 ">
               <CalendarDays size={12} /> Fecha de Nacimiento
             </label>
             <input type="date" value={fechaNacimiento} onChange={e => setFechaNacimiento(e.target.value)} style={{ colorScheme: 'light' }}
@@ -441,3 +451,7 @@ function AdminEditPersonal() {
 }
 
 export default AdminEditPersonal
+
+
+
+

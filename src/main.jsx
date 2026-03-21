@@ -14,6 +14,7 @@ import AdminEditPersonal from './pages/AdminEditPersonal.jsx'
 import AdminBitacora from './pages/AdminBitacora.jsx'
 import AdminAdministradores from './pages/AdminAdministradores.jsx'
 import AdminConfiguracion from './pages/AdminConfiguracion.jsx'
+import AdminHorarios from './pages/AdminHorarios.jsx'
 import UserLayout from './components/UserLayout.jsx'
 import AdminLayout from './components/AdminLayout.jsx'
 import './index.css'
@@ -46,6 +47,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/admin/bitacora" element={<AdminBitacora />} />
           <Route path="/admin/administradores" element={<AdminAdministradores />} />
           <Route path="/admin/configuracion" element={<AdminConfiguracion />} />
+          <Route path="/admin/horarios" element={<AdminHorarios />} />
         </Route>
       </Routes>
     </BrowserRouter>

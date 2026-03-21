@@ -114,13 +114,31 @@ function AdminAdministradores() {
     }
 
     const result = await Swal.fire({
-      title: '¿Eliminar administrador?',
-      text: `Se desactivará a ${admin.nombre_completo}`,
-      icon: 'warning',
+      html: `
+        <div class="bg-red-500 rounded-t-2xl p-6 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-3">
+             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+          </div>
+          <h3 class="text-xl font-black text-white">¿Eliminar administrador?</h3>
+          <p class="text-white/90 text-sm mt-1">Se desactivará el acceso a</p>
+          <p class="text-white font-bold text-sm mt-1">${admin.nombre_completo} (${admin.usuario})</p>
+        </div>
+        <div class="px-6 py-6 text-center text-gray-600 text-sm font-medium">
+          ¡Esta acción no se puede deshacer!
+        </div>
+      `,
       showCancelButton: true,
-      confirmButtonColor: '#dc2626',
       confirmButtonText: 'Sí, desactivar',
       cancelButtonText: 'Cancelar',
+      buttonsStyling: false,
+      padding: '0',
+      customClass: {
+        popup: '!rounded-2xl shadow-2xl border-none !overflow-hidden m-0 !p-0',
+        htmlContainer: '!m-0 !p-0',
+        actions: '!w-[85%] !mx-auto !mb-6 !mt-0 flex-col gap-2',
+        confirmButton: 'w-full py-3 bg-red-500 hover:bg-red-600 text-white font-bold text-sm rounded-xl border-none cursor-pointer m-0',
+        cancelButton: 'w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-sm rounded-xl border-none cursor-pointer m-0'
+      }
     })
 
     if (result.isConfirmed) {
@@ -214,70 +232,80 @@ function AdminAdministradores() {
         </div>
       </div>
 
-      {/* Form */}
+      {/* Form Modal */}
       {showForm && (
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-bold text-gray-800">{editId ? 'Editar Administrador' : 'Nuevo Administrador'}</h3>
-            <button onClick={resetForm} className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer"><X size={20} /></button>
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={resetForm}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-in" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-corporate-blue rounded-t-2xl p-6 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-3">
+                {editId ? <ShieldCheck size={28} className="text-corporate-green" /> : <UserPlus size={28} className="text-corporate-green" />}
+              </div>
+              <h3 className="text-xl font-black text-white">{editId ? 'Editar Administrador' : 'Nuevo Administrador'}</h3>
+              <p className="text-white/50 text-sm mt-1">{editId ? 'Actualiza los datos del usuario' : 'Crea un nuevo usuario administrativo'}</p>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Usuario</label>
+                <input
+                  type="text"
+                  value={form.usuario}
+                  onChange={e => setForm({ ...form, usuario: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all text-center"
+                  placeholder="ej: jperez"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">
+                  Contraseña {editId && <span className="text-gray-400 font-normal">(dejar vacío para no cambiar)</span>}
+                </label>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={e => setForm({ ...form, password: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all text-center"
+                  placeholder="••••••••"
+                  required={!editId}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Nombre Completo</label>
+                <input
+                  type="text"
+                  value={form.nombre_completo}
+                  onChange={e => setForm({ ...form, nombre_completo: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all text-center"
+                  placeholder="ej: Juan Pérez García"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Rol</label>
+                <select
+                  value={form.rol}
+                  onChange={e => setForm({ ...form, rol: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all text-center font-bold text-corporate-blue"
+                >
+                  <option value="super_admin">Super Admin</option>
+                  <option value="admin">Admin</option>
+                  <option value="viewer">Solo Lectura</option>
+                </select>
+              </div>
+
+              <div className="pt-2 flex flex-col gap-2">
+                <button type="submit" disabled={guardando} className="w-full py-3 bg-corporate-blue hover:bg-corporate-blue/90 text-white font-bold text-sm rounded-xl border-none cursor-pointer transition-colors disabled:opacity-50">
+                  {guardando ? 'Guardando...' : editId ? 'Actualizar' : 'Crear Admin'}
+                </button>
+                <button type="button" onClick={resetForm} className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-sm rounded-xl border-none cursor-pointer transition-colors">
+                  Cancelar
+                </button>
+              </div>
+            </form>
           </div>
-          <form onSubmit={handleSubmit} className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Usuario</label>
-              <input
-                type="text"
-                value={form.usuario}
-                onChange={e => setForm({ ...form, usuario: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all"
-                placeholder="ej: jperez"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">
-                Contraseña {editId && <span className="text-gray-400 font-normal">(dejar vacío para no cambiar)</span>}
-              </label>
-              <input
-                type="password"
-                value={form.password}
-                onChange={e => setForm({ ...form, password: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all"
-                placeholder="••••••••"
-                required={!editId}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Nombre Completo</label>
-              <input
-                type="text"
-                value={form.nombre_completo}
-                onChange={e => setForm({ ...form, nombre_completo: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all"
-                placeholder="ej: Juan Pérez García"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Rol</label>
-              <select
-                value={form.rol}
-                onChange={e => setForm({ ...form, rol: e.target.value })}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all"
-              >
-                <option value="super_admin">Super Admin</option>
-                <option value="admin">Admin</option>
-                <option value="viewer">Solo Lectura</option>
-              </select>
-            </div>
-            <div className="sm:col-span-2 flex justify-end gap-2">
-              <button type="button" onClick={resetForm} className="px-4 py-2 text-xs font-bold text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 cursor-pointer transition-colors">
-                Cancelar
-              </button>
-              <button type="submit" disabled={guardando} className="flex items-center gap-1.5 px-4 py-2 bg-corporate-green text-white rounded-xl text-xs font-bold border-none cursor-pointer hover:brightness-95 transition-all disabled:opacity-50">
-                <Save size={14} /> {guardando ? 'Guardando...' : editId ? 'Actualizar' : 'Crear'}
-              </button>
-            </div>
-          </form>
         </div>
       )}
 

@@ -10,25 +10,32 @@ function AdminAddPersonal() {
   const [enviando, setEnviando] = useState(false)
   const [fotoFile, setFotoFile] = useState(null)
   const [fotoPreview, setFotoPreview] = useState(null)
-  const [fechaCorteOnomastico, setFechaCorteOnomastico] = useState('2024-11-30')
+  const [fechaCorteOnomastico, setFechaCorteOnomastico] = useState('2024-11-30'); const [grupoHorarioId, setGrupoHorarioId] = useState(''); const [gruposHorarios, setGruposHorarios] = useState([]);
 
   useEffect(() => {
     const cargarConfig = async () => {
       const { data } = await supabase.from('configuracion').select('valor').eq('clave', 'onomastico_fecha_corte').single()
       if (data) setFechaCorteOnomastico(data.valor)
     }
-    cargarConfig()
-  }, [])
+      const cargarHorarios = async () => {
+        const { data } = await supabase.from('grupos_horarios').select('*').order('id')
+        if (data) setGruposHorarios(data)
+      }
+      cargarConfig()
+      cargarHorarios()
+    }, [])
 
-  const [codigo, setCodigo] = useState('')
-  const [dni, setDni] = useState('')
-  const [nombres, setNombres] = useState('')
+    const [codigo, setCodigo] = useState('')
+    const [dni, setDni] = useState('')
+    const [nombres, setNombres] = useState('')
   const [apellidos, setApellidos] = useState('')
   const [cargo, setCargo] = useState('')
   const [seccion, setSeccion] = useState('')
   const [area, setArea] = useState('')
   const [fechaNacimiento, setFechaNacimiento] = useState('')
   const [fechaIngreso, setFechaIngreso] = useState('')
+  // removed, setGrupoHorarioId] = useState('')
+  // removed, setGruposHorarios] = useState([])
 
   const seccionesDisponibles = [
     'CIL', 'CELSA', 'INSPECCION', 'NESTLE', 'CAD', 'CPEI',
@@ -106,7 +113,7 @@ function AdminAddPersonal() {
       area: area || null,
       fecha_nacimiento: fechaNacimiento || null,
       fecha_ingreso: fechaIngreso || null,
-      foto: fotoNombre
+      foto: fotoNombre, id_grupo_horario: grupoHorarioId || null
     }
 
     const { error } = await supabase.from('personal').insert([payload])
@@ -196,8 +203,8 @@ function AdminAddPersonal() {
         {/* Separador */}
         <div className="h-px bg-slate-200 my-5" />
 
-        {/* Datos laborales */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                {/* Datos laborales */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
           <div>
             <label className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1 block">Cargo</label>
             <select value={cargo} onChange={e => setCargo(e.target.value)}
@@ -222,6 +229,14 @@ function AdminAddPersonal() {
               {areasDisponibles.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
           </div>
+          <div>
+            <label className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1 flex items-center gap-1"><Clock size={12} /> Horario</label>
+            <select value={grupoHorarioId} onChange={e => setGrupoHorarioId(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/20 transition-all bg-white">
+              <option value="">Seleccionar...</option>
+              {gruposHorarios.map(h => <option key={h.id} value={h.id}>{h.nombre}</option>)}
+            </select>
+          </div>
         </div>
 
         {/* Fechas */}
@@ -242,7 +257,7 @@ function AdminAddPersonal() {
           </div>
         </div>
 
-        {/* Preview del nuevo colaborador */}
+          {/* Preview del nuevo colaborador */}
         {(nombres || apellidos || codigo) && (
           <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-4 mb-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <IdCard size={24} className="text-green-600 shrink-0" />
@@ -284,3 +299,9 @@ function AdminAddPersonal() {
 }
 
 export default AdminAddPersonal
+
+
+
+
+
+
