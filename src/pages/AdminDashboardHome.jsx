@@ -221,6 +221,7 @@ function AdminDashboardHome() {
                 <th className="text-left py-2 text-[10px] font-bold text-gray-400 uppercase">Tipo</th>
                 <th className="text-left py-2 text-[10px] font-bold text-gray-400 uppercase">Fecha</th>
                 <th className="text-center py-2 text-[10px] font-bold text-gray-400 uppercase">Estado</th>
+                <th className="text-right py-2 text-[10px] font-bold text-gray-400 uppercase">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -236,6 +237,16 @@ function AdminDashboardHome() {
                     <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${estadoColor[r.estado] || 'bg-gray-100 text-gray-500'}`}>
                       {r.estado}
                     </span>
+                  </td>
+                  <td className="py-2.5 text-right">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/admin/registros/${r.codigo_trabajador}`)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-corporate-blue bg-slate-100 hover:bg-slate-200 rounded-lg border-none cursor-pointer transition-colors"
+                      title="Ir a sus registros"
+                    >
+                      Ir a sus registros <ArrowRight size={14} />
+                    </button>
                   </td>
                 </tr>
               ))}

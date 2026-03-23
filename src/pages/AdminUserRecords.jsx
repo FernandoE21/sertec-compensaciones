@@ -1,13 +1,14 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
+import { useNavigate, useParams } from 'react-router-dom'
+import { supabase, supabaseKey, supabaseUrl } from '../supabaseClient'
 import * as XLSX from 'xlsx'
 import Swal from 'sweetalert2'
-import { ChevronDown, FileSpreadsheet, FilterX, Info, Pencil, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ChevronDown, FileSpreadsheet, FilterX, Info, Pencil, Trash2, X } from 'lucide-react'
 import { logBitacora } from '../utils/bitacora'
 
 function AdminUserRecords() {
   const { codigo } = useParams()
+  const navigate = useNavigate()
 
   const [registros, setRegistros] = useState([])
   const [trabajadorInfo, setTrabajadorInfo] = useState(null)
@@ -17,6 +18,7 @@ function AdminUserRecords() {
   const [registroDetalle, setRegistroDetalle] = useState(null)
   const [estadoMenu, setEstadoMenu] = useState(null)
   const estadoMenuRef = useRef(null)
+  const [estadoEmailModal, setEstadoEmailModal] = useState(null)
 
   const ESTADOS = ['Pendiente', 'Aprobado', 'Rechazado', 'Observado']
 
@@ -69,8 +71,186 @@ function AdminUserRecords() {
 
   const limpiarFechas = () => { setDesde(''); setHasta('') }
 
-  const handleEstadoChange = async (reg, nuevoEstado) => {
-    if (nuevoEstado === 'Rechazado') {
+  const sendEstadoEmail = async ({ to, subject, motivo, reg, estadoDestino }) => {
+    const trabajadorNombre = trabajadorInfo ? `${trabajadorInfo.nombres} ${trabajadorInfo.apellidos}` : codigo
+    const nro = reg?.nro_registro ? String(reg.nro_registro).padStart(6, '0') : String(reg?.id || '')
+    const tipo = reg?._origen === 'registro' ? 'Registro' : 'Solicitud'
+    const estadoUpper = String(estadoDestino || '').toUpperCase()
+
+    const escapeHtml = (value) => String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;')
+
+    const motivoSafe = escapeHtml((motivo || '').trim())
+    const tipoSolicitudSafe = escapeHtml(reg?.tipo_solicitud || '')
+    const requerimientoSafe = escapeHtml(reg?.requerimiento || '')
+    const fechaEvento = reg?.fecha_hora_inicio ? new Date(reg.fecha_hora_inicio).toLocaleDateString() : ''
+    const fechaEventoSafe = escapeHtml(fechaEvento)
+
+    const text = [
+      `Hola ${trabajadorNombre},`,
+      '',
+      `Tu ${tipo} #${nro} ha sido marcado como ${estadoUpper}.`,
+      '',
+      'Detalle:',
+      `- Código: ${codigo}`,
+      `- Tipo solicitud: ${reg?.tipo_solicitud || ''}`,
+      `- Requerimiento: ${reg?.requerimiento || ''}`,
+      `- Fecha evento: ${fechaEvento || ''}`,
+      '',
+      'Descripción:',
+      (motivo || '').trim(),
+      '',
+      'Atentamente;',
+      'NOTIFICACIONES SERTEC',
+      'APP COMPENSACIONES',
+      '(511) 313 4200 Ext. 4417',
+      '(51) 998 193 548',
+      'Av. Los Frutales 419. Ate. Lima, Perú',
+    ].join('\n')
+
+    const firmaHtml = `
+<!-- Firma (tabla para Outlook) -->
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+  <tr>
+    <td style="padding:0; font-family: Arial, sans-serif; font-size:14px; color:#0F172A;">
+      <p style="margin:0 0 10px 0;">Atentamente;</p>
+      <p style="margin:0; font-weight:700; color: rgb(36,75,90);">NOTIFICACIONES SERTEC</p>
+      <p style="margin:2px 0 12px 0; font-weight:700; color: rgb(160,212,71);">APP COMPENSACIONES</p>
+    </td>
+  </tr>
+</table>
+    `.trim()
+
+    const titulo = estadoDestino === 'Rechazado' ? 'Registro rechazado' : 'Registro observado'
+    const badgeBg = estadoDestino === 'Rechazado' ? '#FEE2E2' : '#E0F2FE'
+    const badgeFg = estadoDestino === 'Rechazado' ? '#991B1B' : '#075985'
+
+    const html = `
+<!-- Plantilla compatible con Outlook (tablas + estilos inline) -->
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#F8FAFC" style="border-collapse:collapse; background:#F8FAFC;">
+  <tr>
+    <td align="center" style="padding:24px 12px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="680" style="border-collapse:collapse; width:680px; max-width:680px; background:#FFFFFF; border:1px solid #E2E8F0;">
+        <tr>
+          <td bgcolor="#0B3A4A" style="padding:16px 18px; background:#0B3A4A;">
+            <div style="font-family: Arial, sans-serif; font-size:16px; font-weight:700; color:#FFFFFF;">${escapeHtml(titulo)}</div>
+            <div style="font-family: Arial, sans-serif; font-size:12px; color:#E2E8F0; margin-top:6px;">Portal de Compensaciones</div>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:18px; font-family: Arial, sans-serif; color:#0F172A;">
+            <p style="margin:0 0 12px 0; font-size:14px;">Hola <b>${escapeHtml(trabajadorNombre)}</b>,</p>
+
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+              <tr>
+                <td style="font-size:14px; padding:0 0 14px 0;">
+                  Tu ${escapeHtml(tipo)} <b>#${escapeHtml(nro)}</b> ha sido marcado como
+                  <span style="display:inline-block; padding:2px 10px; font-size:12px; font-weight:700; background:${badgeBg}; color:${badgeFg}; border:1px solid #E2E8F0;">${escapeHtml(estadoUpper)}</span>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Detalle -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse; border:1px solid #E2E8F0; background:#F8FAFC;">
+              <tr>
+                <td style="padding:12px 12px 8px 12px; font-size:12px; font-weight:700; color:#334155;">Detalle del registro</td>
+              </tr>
+              <tr>
+                <td style="padding:0 12px 12px 12px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse; font-size:13px;">
+                    <tr>
+                      <td width="160" style="padding:6px 0; color:#64748B;">Código</td>
+                      <td style="padding:6px 0; color:#0F172A;"><b>${escapeHtml(codigo)}</b></td>
+                    </tr>
+                    <tr>
+                      <td style="padding:6px 0; color:#64748B;">Tipo solicitud</td>
+                      <td style="padding:6px 0; color:#0F172A;"><b>${tipoSolicitudSafe}</b></td>
+                    </tr>
+                    <tr>
+                      <td style="padding:6px 0; color:#64748B;">Requerimiento</td>
+                      <td style="padding:6px 0; color:#0F172A;"><b>${requerimientoSafe || '-'}</b></td>
+                    </tr>
+                    <tr>
+                      <td style="padding:6px 0; color:#64748B;">Fecha evento</td>
+                      <td style="padding:6px 0; color:#0F172A;"><b>${fechaEventoSafe || '-'}</b></td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Descripción -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse; border:1px solid #E2E8F0; background:#FFFFFF; margin-top:12px;">
+              <tr>
+                <td style="padding:12px 12px 8px 12px; font-size:12px; font-weight:700; color:#334155;">Descripción</td>
+              </tr>
+              <tr>
+                <td style="padding:0 12px 12px 12px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse; border:1px solid #E2E8F0; background:#F8FAFC;">
+                    <tr>
+                      <td style="padding:12px; font-size:13px; color:#0F172A; white-space:pre-wrap;">${motivoSafe}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse; margin-top:16px; border-top:1px dashed #E2E8F0;">
+              <tr>
+                <td style="padding-top:16px;">
+                  ${firmaHtml}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+    `.trim()
+
+    const res = await fetch(`${supabaseUrl}/functions/v1/send_smtp_email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${supabaseKey}`,
+        apikey: supabaseKey,
+      },
+      body: JSON.stringify({
+        to,
+        subject,
+        body: text,
+        html,
+      }),
+    })
+
+    if (!res.ok) {
+      const raw = await res.text().catch(() => '')
+      try {
+        const parsed = raw ? JSON.parse(raw) : null
+        const msg = parsed?.error || parsed?.message || raw || `HTTP ${res.status}`
+        throw new Error(msg)
+      } catch {
+        throw new Error(raw || `HTTP ${res.status}`)
+      }
+    }
+
+    const data = await res.json().catch(() => ({ ok: true }))
+
+    if (data && data.ok === false) {
+      throw new Error(data.error || 'No se pudo enviar el correo')
+    }
+
+    return data
+  }
+
+  const handleEstadoChange = async (reg, nuevoEstado, skipConfirm = false) => {
+    if (nuevoEstado === 'Rechazado' && !skipConfirm) {
       const confirm = await Swal.fire({ title: '¿Rechazar?', text: "Se marcará como rechazado.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Sí, rechazar' })
       if (!confirm.isConfirmed) return
     }
@@ -78,7 +258,7 @@ function AdminUserRecords() {
     const moduleId = dbTable
     const { error } = await supabase.from(dbTable).update({ estado: nuevoEstado }).eq('id', reg.id)
     if (!error) {
-      setRegistros(registros.map(r => (r._origen === reg._origen && r.id === reg.id) ? { ...r, estado: nuevoEstado } : r))
+      setRegistros((prev) => prev.map(r => (r._origen === reg._origen && r.id === reg.id) ? { ...r, estado: nuevoEstado } : r))
       if (registroDetalle && registroDetalle._origen === reg._origen && registroDetalle.id === reg.id) setRegistroDetalle({ ...registroDetalle, estado: nuevoEstado })
       const adminUsuario = sessionStorage.getItem('admin_usuario') || 'admin'
       logBitacora({
@@ -209,6 +389,13 @@ function AdminUserRecords() {
     <div className="space-y-5">
       {/* Profile header */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+        <button
+          type="button"
+          onClick={() => navigate('/admin-panel')}
+          className="inline-flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-corporate-blue bg-transparent border-none cursor-pointer transition-colors"
+        >
+          <ArrowLeft size={14} /> Volver a la lista de usuarios
+        </button>
         <div className="flex items-center gap-4">
           {trabajadorInfo && (
             <>
@@ -378,6 +565,37 @@ function AdminUserRecords() {
                     const reg = estadoMenu.reg
                     setEstadoMenu(null)
                     if (!reg || seleccionado) return
+
+                    if (estado === 'Observado') {
+                      const to = (trabajadorInfo?.email || '').trim()
+                      const nro = reg?.nro_registro ? String(reg.nro_registro).padStart(6, '0') : String(reg?.id || '')
+                      const tipo = reg?._origen === 'registro' ? 'Registro' : 'Solicitud'
+                      setEstadoEmailModal({
+                        estadoDestino: 'Observado',
+                        reg,
+                        to,
+                        subject: `Observación - ${tipo} #${nro} (${codigo})`,
+                        motivo: '',
+                        sending: false,
+                      })
+                      return
+                    }
+
+                    if (estado === 'Rechazado') {
+                      const to = (trabajadorInfo?.email || '').trim()
+                      const nro = reg?.nro_registro ? String(reg.nro_registro).padStart(6, '0') : String(reg?.id || '')
+                      const tipo = reg?._origen === 'registro' ? 'Registro' : 'Solicitud'
+                      setEstadoEmailModal({
+                        estadoDestino: 'Rechazado',
+                        reg,
+                        to,
+                        subject: `Rechazo - ${tipo} #${nro} (${codigo})`,
+                        motivo: '',
+                        sending: false,
+                      })
+                      return
+                    }
+
                     await handleEstadoChange(reg, estado)
                   }}
                   className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-gray-50 ${seleccionado ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
@@ -485,6 +703,134 @@ function AdminUserRecords() {
               <div className="flex justify-end border-t border-gray-200 pt-4">
                 <button onClick={() => setRegistroDetalle(null)} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 cursor-pointer transition-colors">
                   Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Estado email modal (Observado / Rechazado) */}
+      {estadoEmailModal && (
+        <div
+          className="fixed inset-0 z-[1600] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => !estadoEmailModal.sending && setEstadoEmailModal(null)}
+        >
+          <div
+            className={`bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 border-t-4 ${estadoEmailModal.estadoDestino === 'Rechazado' ? 'border-t-red-500' : 'border-t-sky-500'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between px-5 py-4 border-b border-dashed border-gray-200">
+              <div>
+                <h3 className="text-lg font-black text-corporate-blue">Enviar correo de {estadoEmailModal.estadoDestino === 'Rechazado' ? 'rechazo' : 'observación'}</h3>
+                <p className="text-xs text-gray-500 mt-1">Se enviará el motivo al trabajador y luego se marcará como <b>{estadoEmailModal.estadoDestino}</b>.</p>
+              </div>
+              <button
+                type="button"
+                disabled={estadoEmailModal.sending}
+                onClick={() => setEstadoEmailModal(null)}
+                className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-50 text-gray-400 border border-gray-200 bg-white cursor-pointer disabled:opacity-50"
+                title="Cerrar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-corporate-blue uppercase tracking-wider">Para</label>
+                <input
+                  type="email"
+                  value={estadoEmailModal.to}
+                  onChange={(e) => setEstadoEmailModal((prev) => ({ ...prev, to: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all"
+                  placeholder="correo@empresa.com"
+                  disabled={estadoEmailModal.sending}
+                />
+                {!trabajadorInfo?.email && (
+                  <p className="text-[11px] text-amber-600">Este trabajador no tiene email registrado en la tabla personal.</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-corporate-blue uppercase tracking-wider">Asunto</label>
+                <input
+                  type="text"
+                  value={estadoEmailModal.subject}
+                  onChange={(e) => setEstadoEmailModal((prev) => ({ ...prev, subject: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all"
+                  disabled={estadoEmailModal.sending}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-corporate-blue uppercase tracking-wider">Motivo (obligatorio)</label>
+                <textarea
+                  rows={5}
+                  value={estadoEmailModal.motivo}
+                  onChange={(e) => setEstadoEmailModal((prev) => ({ ...prev, motivo: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all resize-none"
+                  placeholder={estadoEmailModal.estadoDestino === 'Rechazado' ? 'Indica por qué fue rechazado...' : 'Indica por qué fue observado...'}
+                  disabled={estadoEmailModal.sending}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={estadoEmailModal.sending}
+                  onClick={() => setEstadoEmailModal(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 cursor-pointer disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={estadoEmailModal.sending}
+                  onClick={async () => {
+                    const { reg, to, subject, motivo, estadoDestino } = estadoEmailModal
+                    if (!reg) return
+
+                    const toClean = (to || '').trim()
+                    const subjectClean = (subject || '').trim()
+                    const motivoClean = (motivo || '').trim()
+
+                    if (!toClean || !toClean.includes('@')) {
+                      await Swal.fire({ title: 'Email inválido', text: 'Ingresa un correo válido del trabajador.', icon: 'error' })
+                      return
+                    }
+                    if (!subjectClean) {
+                      await Swal.fire({ title: 'Asunto requerido', text: 'Ingresa un asunto para el correo.', icon: 'error' })
+                      return
+                    }
+                    if (!motivoClean) {
+                      await Swal.fire({ title: 'Motivo requerido', text: 'Escribe el motivo de la observación.', icon: 'error' })
+                      return
+                    }
+
+                    try {
+                      setEstadoEmailModal((prev) => ({ ...prev, sending: true }))
+                      await sendEstadoEmail({ to: toClean, subject: subjectClean, motivo: motivoClean, reg, estadoDestino })
+
+                      if (estadoDestino === 'Rechazado') {
+                        await handleEstadoChange(reg, 'Rechazado', true)
+                      } else {
+                        await handleEstadoChange(reg, 'Observado')
+                      }
+
+                      setEstadoEmailModal(null)
+                    } catch (e) {
+                      setEstadoEmailModal((prev) => ({ ...prev, sending: false }))
+                      await Swal.fire({
+                        title: 'No se pudo enviar',
+                        text: String(e?.message || e),
+                        icon: 'error',
+                      })
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold text-white border-none cursor-pointer shadow-sm disabled:opacity-50 ${estadoEmailModal.estadoDestino === 'Rechazado' ? 'bg-red-600 hover:bg-red-700' : 'bg-sky-600 hover:bg-sky-700'}`}
+                >
+                  {estadoEmailModal.sending ? 'Enviando...' : `Enviar y marcar ${estadoEmailModal.estadoDestino === 'Rechazado' ? 'rechazado' : 'observado'}`}
                 </button>
               </div>
             </div>
