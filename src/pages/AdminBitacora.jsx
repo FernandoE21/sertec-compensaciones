@@ -140,7 +140,7 @@ function AdminBitacora() {
 
       {/* Filters */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        <div className="flex flex-col sm:flex-row gap-3 items-end flex-wrap">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end flex-wrap">
           <div className="flex flex-col gap-1 flex-[2] min-w-0">
             <label className="text-[10px] font-bold text-corporate-blue uppercase tracking-wider">Buscar</label>
             <div className="relative">
@@ -150,7 +150,7 @@ function AdminBitacora() {
           </div>
           <div className="flex flex-col gap-1 min-w-0">
             <label className="text-[10px] font-bold text-corporate-blue uppercase tracking-wider">Acción</label>
-            <select value={filtroAccion} onChange={e => setFiltroAccion(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all">
+            <select value={filtroAccion} onChange={e => setFiltroAccion(e.target.value)} className="w-full sm:w-auto px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all">
               <option value="">Todas</option>
               <option value="login">Login</option>
               <option value="crear">Crear</option>
@@ -164,7 +164,7 @@ function AdminBitacora() {
           </div>
           <div className="flex flex-col gap-1 min-w-0">
             <label className="text-[10px] font-bold text-corporate-blue uppercase tracking-wider">Tipo</label>
-            <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all">
+            <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)} className="w-full sm:w-auto px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all">
               <option value="">Todos</option>
               <option value="admin">Admin</option>
               <option value="empleado">Empleado</option>
@@ -172,11 +172,11 @@ function AdminBitacora() {
           </div>
           <div className="flex flex-col gap-1 min-w-0">
             <label className="text-[10px] font-bold text-corporate-blue uppercase tracking-wider">Desde</label>
-            <input type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} style={{ colorScheme: 'light' }} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all sm:w-36" />
+            <input type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} style={{ colorScheme: 'light' }} className="w-full sm:w-36 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all" />
           </div>
           <div className="flex flex-col gap-1 min-w-0">
             <label className="text-[10px] font-bold text-corporate-blue uppercase tracking-wider">Hasta</label>
-            <input type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} style={{ colorScheme: 'light' }} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all sm:w-36" />
+            <input type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} style={{ colorScheme: 'light' }} className="w-full sm:w-36 px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all" />
           </div>
           {(busqueda || filtroAccion || filtroTipo || fechaDesde || fechaHasta) && (
             <button onClick={limpiarFiltros} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors border border-gray-200 cursor-pointer whitespace-nowrap">
