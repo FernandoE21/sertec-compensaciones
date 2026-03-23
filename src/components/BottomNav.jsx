@@ -17,6 +17,12 @@ function UserSidebar({ codigo }) {
   const navigate = useNavigate()
   const location = useLocation()
 
+  const handleLogout = () => {
+    sessionStorage.removeItem('empleado_codigo')
+    sessionStorage.removeItem('empleado_nombre')
+    navigate('/', { replace: true })
+  }
+
   useEffect(() => {
     if (codigo) {
       supabase.from('personal').select('*').eq('codigo', codigo).single().then(({data}) => {
@@ -25,10 +31,168 @@ function UserSidebar({ codigo }) {
     }
   }, [codigo])
 
-  const mostrarFotocheck = () => {
+  const mostrarFotocheck = async () => {
     if (!userData) return
     const STORAGE_URL = "https://pwzogtzcgcxiondlcfeo.supabase.co/storage/v1/object/public/fotos%20personal/"
     const fotoUrl = userData.foto ? `${STORAGE_URL}${userData.foto}` : null
+
+    const diasSemana = [
+      { iso: 1, corto: 'Lun', largo: 'Lunes' },
+      { iso: 2, corto: 'Mar', largo: 'Martes' },
+      { iso: 3, corto: 'Mié', largo: 'Miércoles' },
+      { iso: 4, corto: 'Jue', largo: 'Jueves' },
+      { iso: 5, corto: 'Vie', largo: 'Viernes' },
+      { iso: 6, corto: 'Sáb', largo: 'Sábado' },
+      { iso: 7, corto: 'Dom', largo: 'Domingo' },
+    ]
+
+    const fmtHora = (t) => (t ? String(t).slice(0, 5) : '')
+
+    const diasEntre = (fechaA, fechaB) => {
+      const a = new Date(`${fechaA}T12:00:00Z`)
+      const b = new Date(`${fechaB}T12:00:00Z`)
+      return Math.round((b.getTime() - a.getTime()) / (24 * 60 * 60 * 1000))
+    }
+
+    const hoyISO = () => {
+      const now = new Date()
+      const off = now.getTimezoneOffset()
+      return new Date(now.getTime() - off * 60 * 1000).toISOString().slice(0, 10)
+    }
+
+    const calcularSemanaActual = (fechaInicioCiclo, totalSemanas) => {
+      const total = Math.max(1, Number(totalSemanas || 1))
+      const inicio = fechaInicioCiclo || '2024-01-01'
+      const dias = diasEntre(inicio, hoyISO())
+      let diasNorm = dias
+      if (diasNorm < 0) {
+        const ciclo = total * 7
+        diasNorm = ciclo + (diasNorm % ciclo)
+      }
+      return ((Math.floor(diasNorm / 7) % total) + 1)
+    }
+
+    const buildTurnoIndex = (reglas) => {
+      const m = new Map()
+      ;(reglas || []).forEach(r => {
+        const w = Number(r.semana_del_ciclo || 1)
+        const d = Number(r.dia_semana)
+        if (!d) return
+        m.set(`${w}-${d}`, { entrada: fmtHora(r.hora_entrada), salida: fmtHora(r.hora_salida) })
+      })
+      return m
+    }
+
+    const addDays = (iso, delta) => {
+      const d = new Date(`${iso}T12:00:00Z`)
+      d.setUTCDate(d.getUTCDate() + delta)
+      return d.toISOString().slice(0, 10)
+    }
+
+    let horarioGrupo = null
+    let horarioReglas = []
+    if (userData.id_grupo_horario) {
+      const [{ data: g }, { data: reglas, error: reglasError }] = await Promise.all([
+        supabase.from('grupos_horarios').select('id, nombre, total_semanas_ciclo').eq('id', userData.id_grupo_horario).single(),
+        supabase.from('reglas_turnos').select('semana_del_ciclo, dia_semana, hora_entrada, hora_salida').eq('grupo_id', userData.id_grupo_horario).order('semana_del_ciclo', { ascending: true }).order('dia_semana', { ascending: true }),
+      ])
+
+      if (g) horarioGrupo = g
+
+      if (!reglasError && reglas) {
+        horarioReglas = reglas
+      } else {
+        // Fallback si reglas_turnos no es legible por RLS: reconstruir ciclo vía RPC.
+        const total = Math.max(1, Number(g?.total_semanas_ciclo || 1))
+        const inicio = userData.fecha_inicio_ciclo || '2024-01-01'
+        const jobs = []
+        for (let w = 1; w <= total; w++) {
+          for (let di = 0; di < 7; di++) {
+            const fecha = addDays(inicio, (w - 1) * 7 + di)
+            jobs.push(
+              supabase.rpc('obtener_horario_por_fecha', { p_codigo: userData.codigo, p_fecha: fecha })
+                .then(({ data }) => ({ w, fecha, data }))
+            )
+          }
+        }
+        const res = await Promise.all(jobs)
+        horarioReglas = res
+          .map(r => {
+            const day = (new Date(`${r.fecha}T12:00:00Z`).getUTCDay() + 6) % 7 + 1
+            const row = (r.data && r.data[0]) ? r.data[0] : null
+            if (!row) return null
+            return { semana_del_ciclo: r.w, dia_semana: day, hora_entrada: row.hora_entrada, hora_salida: row.hora_salida }
+          })
+          .filter(Boolean)
+      }
+    }
+
+    const renderHorarioHtml = () => {
+      if (!userData.id_grupo_horario) {
+        return `
+          <div class="flex flex-col pt-1">
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-left">Horario</span>
+            <span class="text-sm font-semibold text-amber-700 text-left">Sin horario asignado</span>
+          </div>
+        `
+      }
+
+      const total = Math.max(1, Number(horarioGrupo?.total_semanas_ciclo || 1))
+      const semanaActual = calcularSemanaActual(userData.fecha_inicio_ciclo, total)
+      const idx = buildTurnoIndex(horarioReglas)
+
+      const renderSemana = (w) => {
+        const rows = diasSemana.map(d => {
+          const t = idx.get(`${w}-${d.iso}`)
+          const texto = t?.entrada && t?.salida ? `${t.entrada} - ${t.salida}` : 'LIBRE'
+          const color = texto === 'LIBRE' ? 'text-slate-400' : 'text-slate-700'
+          return `
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-[11px] text-slate-600 font-bold">
+                <span class="sm:hidden">${d.corto}</span>
+                <span class="hidden sm:inline">${d.largo}</span>
+              </div>
+              <div class="text-[11px] font-mono font-extrabold ${color}">${texto}</div>
+            </div>
+          `
+        }).join('')
+
+        const header = total > 1
+          ? `
+            <div class="flex items-center justify-between mb-2">
+              <div class="text-[11px] font-black text-corporate-blue uppercase tracking-wider">Semana ${w}</div>
+              ${w === semanaActual ? '<span class="text-[10px] font-extrabold uppercase tracking-wider bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200">Actual</span>' : ''}
+            </div>
+          `
+          : ''
+
+        const wrapCls = (w === semanaActual && total > 1) ? 'bg-white border-green-200' : 'bg-white/70 border-slate-200'
+        return `
+          <div class="rounded-xl border p-3 ${wrapCls}">
+            ${header}
+            <div class="space-y-1">${rows}</div>
+          </div>
+        `
+      }
+
+      return `
+        <div class="flex flex-col pt-1">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-left">Horario</span>
+            ${horarioGrupo ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">${horarioGrupo.nombre}</span>` : ''}
+          </div>
+          <div class="mt-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-bold text-slate-700">${total > 1 ? `Rotativo · ${total} semanas` : 'Semana fija'}</div>
+              ${total > 1 ? `<div class="text-[11px] text-slate-500">Actual: <b>${semanaActual}</b> / ${total}</div>` : ''}
+            </div>
+            <div class="mt-2 ${total > 1 ? 'space-y-2' : ''} max-h-60 overflow-auto pr-1">
+              ${Array.from({ length: total }, (_, i) => renderSemana(i + 1)).join('')}
+            </div>
+          </div>
+        </div>
+      `
+    }
 
     Swal.fire({
       html: `
@@ -55,6 +219,7 @@ function UserSidebar({ codigo }) {
             <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider text-left">DNI Identificación</span>
             <span class="text-sm font-semibold text-gray-700 text-left">${userData.dni || 'No registrado'}</span>
           </div>
+          ${renderHorarioHtml()}
         </div>
       `,
       showConfirmButton: true,
@@ -124,13 +289,27 @@ function UserSidebar({ codigo }) {
   return (
     <>
       {/* Top bar */}
-      <header className="sticky top-0 z-50 bg-corporate-blue text-white shadow-md">
-        <div className="flex items-center justify-between px-4 h-14 max-w-7xl mx-auto">
-          <button onClick={() => setOpen(!open)} className="p-2 rounded-lg hover:bg-white/10 transition-colors border-none bg-transparent text-white cursor-pointer md:hidden">
-            {open ? <X size={24} /> : <Menu size={24} />}
-          </button>
-          <span className="text-sm font-bold tracking-wide uppercase">Portal de Horas — SERTEC</span>
-          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-xs font-semibold bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors border-none text-white cursor-pointer">
+      <header className="sticky top-0 z-50 bg-corporate-blue text-white border-b border-white/10 shadow-sm">
+        <div className="flex items-center justify-between px-4 md:pl-60 h-14 w-full">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setOpen(!open)}
+              className="p-2 rounded-xl hover:bg-white/10 transition-colors border-none bg-transparent text-white cursor-pointer md:hidden"
+              aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+            >
+              {open ? <X size={22} /> : <Menu size={22} />}
+            </button>
+
+            <div className="min-w-0">
+              <div className="text-sm font-black tracking-wide leading-none truncate">Portal de Horas</div>
+              <div className="text-[10px] text-white/60 font-bold uppercase tracking-widest leading-none truncate">SERTEC</div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl transition-colors text-white bg-white/10 hover:bg-white/20 border border-white/10 cursor-pointer"
+          >
             <LogOut size={16} /> Salir
           </button>
         </div>
@@ -146,14 +325,21 @@ function UserSidebar({ codigo }) {
               <button
                 key={link.label}
                 onClick={() => handleNavigate(link.path)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border-none cursor-pointer ${
+                className={`flex items-start gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border-none cursor-pointer ${
                   isActive
                     ? 'bg-corporate-green text-white shadow-md'
                     : 'text-white/70 hover:bg-white/10 hover:text-white bg-transparent'
                 }`}
               >
                 <link.icon size={18} />
-                {link.label}
+                {link.label === 'Mis Registros Integrados' ? (
+                  <span className="flex flex-col leading-tight text-left">
+                    <span>Mis Registros</span>
+                    <span>Integrados</span>
+                  </span>
+                ) : (
+                  <span className="leading-tight text-left">{link.label}</span>
+                )}
               </button>
             )
           })}

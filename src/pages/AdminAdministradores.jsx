@@ -14,13 +14,18 @@ function AdminAdministradores() {
   const [guardando, setGuardando] = useState(false)
 
   const adminActual = sessionStorage.getItem('admin_usuario') || 'admin'
-  const rolActual = sessionStorage.getItem('admin_rol') || 'super_admin'
+  const rolActual = sessionStorage.getItem('admin_rol') || 'admin'
+  const esSuperAdmin = rolActual === 'super_admin'
 
   useEffect(() => { fetchAdmins() }, [])
 
   const fetchAdmins = async () => {
     setLoading(true)
-    const { data } = await supabase.from('administradores').select('*').order('created_at', { ascending: true })
+    const selectCols = esSuperAdmin
+      ? '*'
+      : 'id, usuario, nombre_completo, rol, activo, created_at, updated_at'
+
+    const { data } = await supabase.from('administradores').select(selectCols).order('created_at', { ascending: true })
     setAdmins(data || [])
     setLoading(false)
   }
@@ -33,6 +38,17 @@ function AdminAdministradores() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (!esSuperAdmin) {
+      Swal.fire('Acceso restringido', 'Solo el Super Admin puede crear o editar administradores.', 'warning')
+      return
+    }
+
+    if (form.rol === 'super_admin' && !esSuperAdmin) {
+      Swal.fire('Acceso restringido', 'No tiene permisos para crear Super Admin.', 'warning')
+      return
+    }
+
     if (!form.usuario.trim() || !form.nombre_completo.trim()) {
       Swal.fire('Error', 'Usuario y nombre completo son requeridos', 'error')
       return
@@ -102,12 +118,20 @@ function AdminAdministradores() {
   }
 
   const handleEdit = (admin) => {
+    if (!esSuperAdmin) {
+      Swal.fire('Acceso restringido', 'Solo el Super Admin puede editar administradores.', 'warning')
+      return
+    }
     setForm({ usuario: admin.usuario, password: '', nombre_completo: admin.nombre_completo, rol: admin.rol })
     setEditId(admin.id)
     setShowForm(true)
   }
 
   const handleDelete = async (admin) => {
+    if (!esSuperAdmin) {
+      Swal.fire('Acceso restringido', 'Solo el Super Admin puede eliminar/desactivar administradores.', 'warning')
+      return
+    }
     if (admin.rol === 'super_admin' && admins.filter(a => a.rol === 'super_admin' && a.activo).length <= 1) {
       Swal.fire('No permitido', 'Debe existir al menos un Super Admin activo', 'warning')
       return
@@ -157,6 +181,10 @@ function AdminAdministradores() {
   }
 
   const handleReactivar = async (admin) => {
+    if (!esSuperAdmin) {
+      Swal.fire('Acceso restringido', 'Solo el Super Admin puede reactivar administradores.', 'warning')
+      return
+    }
     await supabase.from('administradores').update({ activo: true, updated_at: new Date().toISOString() }).eq('id', admin.id)
     await logBitacora({
       usuario: adminActual,
@@ -171,6 +199,10 @@ function AdminAdministradores() {
   }
 
   const toggleShowPassword = (id) => {
+    if (!esSuperAdmin) {
+      Swal.fire('Acceso restringido', 'Solo el Super Admin puede ver contraseñas.', 'warning')
+      return
+    }
     setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
@@ -195,12 +227,14 @@ function AdminAdministradores() {
               <p className="text-sm text-gray-500 mt-0.5">Gestión de usuarios administrativos y roles</p>
             </div>
           </div>
-          <button
-            onClick={() => { resetForm(); setShowForm(true) }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-corporate-green text-white rounded-xl text-xs font-bold shadow-sm hover:brightness-95 transition-all border-none cursor-pointer"
-          >
-            <UserPlus size={14} /> Nuevo Admin
-          </button>
+          {esSuperAdmin && (
+            <button
+              onClick={() => { resetForm(); setShowForm(true) }}
+              className="flex items-center gap-1.5 px-4 py-2 bg-corporate-green text-white rounded-xl text-xs font-bold shadow-sm hover:brightness-95 transition-all border-none cursor-pointer"
+            >
+              <UserPlus size={14} /> Nuevo Admin
+            </button>
+          )}
         </div>
       </div>
 
@@ -220,7 +254,7 @@ function AdminAdministradores() {
               <ShieldCheck size={14} className="text-blue-600" />
               <span className="text-xs font-bold text-blue-700">Admin</span>
             </div>
-            <p className="text-[11px] text-blue-600">Gestiona personal, aprueba solicitudes y ve bitácora.</p>
+            <p className="text-[11px] text-blue-600">Gestiona personal, aprueba solicitudes y ve actividad.</p>
           </div>
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
             <div className="flex items-center gap-2 mb-1">
@@ -233,7 +267,7 @@ function AdminAdministradores() {
       </div>
 
       {/* Form Modal */}
-      {showForm && (
+      {showForm && esSuperAdmin && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={resetForm}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-in" onClick={(e) => e.stopPropagation()}>
             <div className="bg-corporate-blue rounded-t-2xl p-6 text-center">
@@ -290,7 +324,7 @@ function AdminAdministradores() {
                   onChange={e => setForm({ ...form, rol: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all text-center font-bold text-corporate-blue"
                 >
-                  <option value="super_admin">Super Admin</option>
+                  {esSuperAdmin && <option value="super_admin">Super Admin</option>}
                   <option value="admin">Admin</option>
                   <option value="viewer">Solo Lectura</option>
                 </select>
@@ -318,15 +352,15 @@ function AdminAdministradores() {
               <th className="py-3 px-4 text-left text-xs font-bold">Nombre</th>
               <th className="py-3 px-4 text-center text-xs font-bold">Rol</th>
               <th className="py-3 px-4 text-center text-xs font-bold">Estado</th>
-              <th className="py-3 px-4 text-center text-xs font-bold">Contraseña</th>
-              <th className="py-3 px-4 text-center text-xs font-bold w-32">Acciones</th>
+              {esSuperAdmin && <th className="py-3 px-4 text-center text-xs font-bold">Contraseña</th>}
+              {esSuperAdmin && <th className="py-3 px-4 text-center text-xs font-bold w-32">Acciones</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <tr><td colSpan="6" className="text-center py-8 text-gray-400">Cargando...</td></tr>
+              <tr><td colSpan={esSuperAdmin ? 6 : 4} className="text-center py-8 text-gray-400">Cargando...</td></tr>
             ) : admins.length === 0 ? (
-              <tr><td colSpan="6" className="text-center py-8 text-gray-400">No hay administradores registrados.</td></tr>
+              <tr><td colSpan={esSuperAdmin ? 6 : 4} className="text-center py-8 text-gray-400">No hay administradores registrados.</td></tr>
             ) : admins.map(admin => (
               <tr key={admin.id} className={`hover:bg-gray-50/50 transition-colors ${!admin.activo ? 'opacity-50' : ''}`}>
                 <td className="py-3 px-4">
@@ -343,44 +377,48 @@ function AdminAdministradores() {
                     {admin.activo ? 'Activo' : 'Inactivo'}
                   </span>
                 </td>
-                <td className="py-3 px-4 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="text-xs font-mono text-gray-500">
-                      {showPasswords[admin.id] ? admin.password : '••••••••'}
-                    </span>
-                    <button
-                      onClick={() => toggleShowPassword(admin.id)}
-                      className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0.5"
-                    >
-                      {showPasswords[admin.id] ? <EyeOff size={13} /> : <Eye size={13} />}
-                    </button>
-                  </div>
-                </td>
-                <td className="py-3 px-4 text-center">
-                  <div className="flex gap-1.5 justify-center">
-                    <button
-                      onClick={() => handleEdit(admin)}
-                      className="flex items-center gap-1 px-2 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
-                    >
-                      <Pencil size={12} />
-                    </button>
-                    {admin.activo ? (
+                {esSuperAdmin && (
+                  <td className="py-3 px-4 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <span className="text-xs font-mono text-gray-500">
+                        {showPasswords[admin.id] ? admin.password : '••••••••'}
+                      </span>
                       <button
-                        onClick={() => handleDelete(admin)}
-                        className="flex items-center gap-1 px-2 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
+                        onClick={() => toggleShowPassword(admin.id)}
+                        className="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0.5"
                       >
-                        <Trash2 size={12} />
+                        {showPasswords[admin.id] ? <EyeOff size={13} /> : <Eye size={13} />}
                       </button>
-                    ) : (
+                    </div>
+                  </td>
+                )}
+                {esSuperAdmin && (
+                  <td className="py-3 px-4 text-center">
+                    <div className="flex gap-1.5 justify-center">
                       <button
-                        onClick={() => handleReactivar(admin)}
-                        className="px-2 py-1.5 bg-green-50 text-green-600 hover:bg-green-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
+                        onClick={() => handleEdit(admin)}
+                        className="flex items-center gap-1 px-2 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
                       >
-                        Activar
+                        <Pencil size={12} />
                       </button>
-                    )}
-                  </div>
-                </td>
+                      {admin.activo ? (
+                        <button
+                          onClick={() => handleDelete(admin)}
+                          className="flex items-center gap-1 px-2 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleReactivar(admin)}
+                          className="px-2 py-1.5 bg-green-50 text-green-600 hover:bg-green-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
+                        >
+                          Activar
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

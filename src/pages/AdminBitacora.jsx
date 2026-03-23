@@ -11,11 +11,31 @@ function AdminBitacora() {
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
   const [pagina, setPagina] = useState(0)
+  const [superAdmins, setSuperAdmins] = useState(['admin'])
   const POR_PAGINA = 50
 
   useEffect(() => {
+    const fetchSuperAdmins = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('administradores')
+          .select('usuario')
+          .eq('rol', 'super_admin')
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          setSuperAdmins(Array.from(new Set(data.map(x => x.usuario).filter(Boolean))))
+        }
+      } catch {
+        // Fallback silencioso
+      }
+    }
+
+    fetchSuperAdmins()
+  }, [])
+
+  useEffect(() => {
     fetchBitacora()
-  }, [pagina])
+  }, [pagina, superAdmins])
 
   const fetchBitacora = async () => {
     setLoading(true)
@@ -27,7 +47,14 @@ function AdminBitacora() {
 
     const { data, error, count } = await query
     if (!error) {
-      setRegistros(data || [])
+      const superAdminSet = new Set((superAdmins || []).map(x => (x || '').toLowerCase()))
+      const filtradosSuperAdmin = (data || []).filter(r => {
+        if (r?.tipo_usuario !== 'admin') return true
+        const usuario = (r?.usuario || '').toLowerCase()
+        return !superAdminSet.has(usuario)
+      })
+
+      setRegistros(filtradosSuperAdmin)
     }
     setLoading(false)
   }
@@ -82,8 +109,8 @@ function AdminBitacora() {
     }))
     const ws = XLSX.utils.json_to_sheet(rows)
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Bitácora')
-    XLSX.writeFile(wb, `bitacora_${new Date().toISOString().slice(0, 10)}.xlsx`)
+    XLSX.utils.book_append_sheet(wb, ws, 'Actividad')
+    XLSX.writeFile(wb, `actividad_${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
   return (
@@ -96,8 +123,8 @@ function AdminBitacora() {
               <ScrollText size={20} className="text-white" />
             </div>
             <div>
-              <h2 className="text-xl md:text-2xl font-black text-corporate-blue">Bitácora</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Registro de todas las acciones del sistema</p>
+              <h2 className="text-xl md:text-2xl font-black text-corporate-blue">Actividad</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Registro de acciones del sistema</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -173,9 +200,9 @@ function AdminBitacora() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <tr><td colSpan="5" className="text-center py-8 text-gray-400">Cargando bitácora...</td></tr>
+              <tr><td colSpan="5" className="text-center py-8 text-gray-400">Cargando actividad...</td></tr>
             ) : filtrados.length === 0 ? (
-              <tr><td colSpan="5" className="text-center py-8 text-gray-400">No se encontraron registros en la bitácora.</td></tr>
+              <tr><td colSpan="5" className="text-center py-8 text-gray-400">No se encontraron registros.</td></tr>
             ) : filtrados.map(r => (
               <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="py-2.5 px-4">

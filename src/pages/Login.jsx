@@ -14,6 +14,10 @@ function Login() {
   const [textoCierre, setTextoCierre] = useState('')
 
   useEffect(() => {
+    // Al entrar al login, limpiar cualquier sesión previa de empleado.
+    sessionStorage.removeItem('empleado_codigo')
+    sessionStorage.removeItem('empleado_nombre')
+
     const hoy = new Date()
     const dia = hoy.getDate(), mes = hoy.getMonth(), anio = hoy.getFullYear()
     const fc = dia <= 21 ? new Date(anio, mes, 21) : new Date(anio, mes + 1, 21)
@@ -43,6 +47,10 @@ function Login() {
     } else {
       const nom = data.nombres.split(' ')[0]
       const nomBonito = nom.charAt(0).toUpperCase() + nom.slice(1).toLowerCase()
+
+      sessionStorage.setItem('empleado_codigo', codigoLimpio)
+      sessionStorage.setItem('empleado_nombre', `${data.nombres} ${data.apellidos}`)
+
       logBitacora({ usuario: codigoLimpio, tipo_usuario: 'empleado', accion: 'login', modulo: 'auth', descripcion: `${data.nombres} ${data.apellidos} inició sesión` })
       const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true })
       Toast.fire({ icon: 'success', title: `¡Hola, ${nomBonito}!` })

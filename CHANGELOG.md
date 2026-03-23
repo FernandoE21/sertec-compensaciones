@@ -261,3 +261,8 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Mantener orden cronolÃ³gico (mÃ¡s reciente arriba)
 - Usar emojis âœ… para completados, [ ] para pendientes
 
+
+## [21-Mar-2026]
+-  **Horarios**: Se actualizaron los nombres genéricos de los grupos de horarios en la DB por descripciones más detalladas (ej: L-V de 08:30 a 18:00).
+-  **Bugfix**: Se proveyó script (fix-rpc-horario.sql) para reparar RPC obtener_horario_por_fecha en Supabase, el cual no cargaba el horario tras la migración a id_grupo_horario.
+

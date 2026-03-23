@@ -56,7 +56,11 @@ function UserRecords() {
       const { data } = await supabase.from('personal').select('nombres, apellidos, foto, cargo').eq('codigo', codigo).single()
       if (data) setTrabajadorInfo(data)
     }
+
     fetchTrabajador()
+  }, [codigo])
+
+  useEffect(() => {
     fetchRegistros()
   }, [codigo, desde, hasta])
 
@@ -164,7 +168,7 @@ function UserRecords() {
 
       {/* Filters */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        <div className="flex flex-col sm:flex-row gap-3 items-end">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold text-corporate-blue uppercase tracking-wider">Desde</label>
@@ -180,8 +184,8 @@ function UserRecords() {
               </button>
             )}
           </div>
-          <div className="flex-1" />
-          <button onClick={exportarExcel} className="flex items-center gap-2 bg-corporate-green hover:brightness-95 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all border-none cursor-pointer whitespace-nowrap shadow-sm">
+          <div className="hidden sm:block flex-1" />
+          <button onClick={exportarExcel} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-corporate-green hover:brightness-95 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all border-none cursor-pointer whitespace-nowrap shadow-sm">
             <FileSpreadsheet size={16} /> Exportar
           </button>
         </div>
@@ -260,35 +264,99 @@ function UserRecords() {
       {/* Detail modal */}
       {registroDetalle && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setRegistroDetalle(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-in p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-gray-200 pb-3 mb-4">
-              <h3 className="text-lg font-bold text-gray-800">Detalle del Registro</h3>
-              <button onClick={() => setRegistroDetalle(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 border-none bg-transparent cursor-pointer">
-                <X size={20} />
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-slide-in border border-gray-100 border-t-4 border-t-corporate-green overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-start justify-between px-5 py-4 border-b border-dashed border-gray-200">
+              <div>
+                <h3 className="text-lg font-black text-corporate-blue flex items-center gap-2">
+                  <span className="text-corporate-green text-xl">&#9432;</span>
+                  Detalle del Registro
+                </h3>
+                <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                  <span className="font-mono">#{String(registroDetalle.nro_registro).padStart(6, '0')}</span>
+                  {registroDetalle._origen === 'solicitud' ? (
+                    <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">Solicitud</span>
+                  ) : (
+                    <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">Registro</span>
+                  )}
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${statusColor(registroDetalle.estado)}`}>{registroDetalle.estado}</span>
+                </div>
+              </div>
+              <button onClick={() => setRegistroDetalle(null)} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-50 text-gray-400 border border-gray-200 bg-white cursor-pointer">
+                <X size={18} />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><span className="text-[10px] font-bold uppercase text-gray-400">Nro Registro</span><p className="font-mono text-base font-bold text-gray-800">{String(registroDetalle.nro_registro).padStart(6, '0')}</p></div>
-              <div><span className="text-[10px] font-bold uppercase text-gray-400">Estado</span><p className={`inline-block mt-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase ${statusColor(registroDetalle.estado)}`}>{registroDetalle.estado}</p></div>
-              <div className="col-span-2"><span className="text-[10px] font-bold uppercase text-gray-400">Tipo de Solicitud</span><p className="text-sm font-medium text-gray-800">{registroDetalle.tipo_solicitud}</p></div>
-              <div><span className="text-[10px] font-bold uppercase text-gray-400">Fecha Evento</span><p className="text-sm text-gray-700">{new Date(registroDetalle.fecha_hora_inicio).toLocaleDateString()}</p></div>
-              <div><span className="text-[10px] font-bold uppercase text-gray-400">Requerimiento</span><p className="text-sm text-gray-700">{registroDetalle.requerimiento || 'N/A'}</p></div>
-              <div><span className="text-[10px] font-bold uppercase text-gray-400">Ingreso</span><p className="text-sm text-gray-700">{new Date(registroDetalle.ingreso || registroDetalle.fecha_hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p></div>
-              <div><span className="text-[10px] font-bold uppercase text-gray-400">Salida</span><p className="text-sm text-gray-700">{new Date(registroDetalle.salida || registroDetalle.fecha_hora_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p></div>
-              <div className="col-span-2"><span className="text-[10px] font-bold uppercase text-gray-400">Tiempo Calculado</span><p className="mt-1">{calcularHorasFila(registroDetalle)}</p></div>
-              <div className="col-span-2"><span className="text-[10px] font-bold uppercase text-gray-400">Motivo</span><p className="text-sm bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-gray-700">{registroDetalle.motivo || 'Sin detalles adicionales'}</p></div>
-              <div className="col-span-2"><span className="text-[10px] font-bold uppercase text-gray-400">Creado el</span><p className="text-xs text-gray-400">{new Date(registroDetalle.created_at).toLocaleString()}</p></div>
-            </div>
-            {registroDetalle.estado === 'Pendiente' && (
-              <div className="mt-5 flex gap-3 justify-end border-t border-gray-200 pt-4">
-                <button onClick={() => { setRegistroDetalle(null); navigate(registroDetalle._origen === 'registro' ? `/editar-nuevo-registro/${codigo}/${registroDetalle.nro_registro}` : `/editar-registro/${codigo}/${registroDetalle.nro_registro}`) }} className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 text-white text-sm font-bold rounded-xl border-none cursor-pointer hover:bg-amber-600 transition-colors">
-                  <Pencil size={14} /> Editar
-                </button>
-                <button onClick={() => eliminarRegistro(registroDetalle.nro_registro, registroDetalle._origen)} className="flex items-center gap-1.5 px-4 py-2 bg-red-500 text-white text-sm font-bold rounded-xl border-none cursor-pointer hover:bg-red-600 transition-colors">
-                  <Trash2 size={14} /> Eliminar
-                </button>
+
+            <div className="p-5 space-y-4">
+              {/* Fotocheck */}
+              {trabajadorInfo && (
+                <div className="flex items-center justify-between gap-4 bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={trabajadorInfo.foto ? `${STORAGE_URL}${trabajadorInfo.foto}` : ''}
+                      alt="Perfil"
+                      className="w-12 h-12 rounded-full object-cover border-3 border-white shadow-md"
+                      onError={(e) => e.target.src = `https://ui-avatars.com/api/?name=${trabajadorInfo.nombres}`}
+                    />
+                    <div>
+                      <div className="text-sm font-extrabold text-corporate-blue">{trabajadorInfo.nombres.split(' ')[0]} {trabajadorInfo.apellidos.split(' ')[0]}</div>
+                      <div className="text-xs text-gray-500">Código: <strong>{codigo}</strong> · {trabajadorInfo.cargo}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Tiempo</div>
+                    <div className="mt-1">{calcularHorasFila(registroDetalle)}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Datos */}
+              <div className="bg-white border border-gray-100 rounded-2xl p-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <div className="text-[10px] font-extrabold text-corporate-blue uppercase tracking-wider">Tipo de Solicitud</div>
+                    <div className="mt-1 text-sm font-semibold text-gray-800">{registroDetalle.tipo_solicitud}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-extrabold text-corporate-blue uppercase tracking-wider">Fecha Evento</div>
+                    <div className="mt-1 text-sm text-gray-700">{new Date(registroDetalle.fecha_hora_inicio).toLocaleDateString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-extrabold text-corporate-blue uppercase tracking-wider">Requerimiento</div>
+                    <div className="mt-1 text-sm text-gray-700">{registroDetalle.requerimiento || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-extrabold text-corporate-blue uppercase tracking-wider">Ingreso</div>
+                    <div className="mt-1 text-sm text-gray-700">{new Date(registroDetalle.ingreso || registroDetalle.fecha_hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-extrabold text-corporate-blue uppercase tracking-wider">Salida</div>
+                    <div className="mt-1 text-sm text-gray-700">{new Date(registroDetalle.salida || registroDetalle.fecha_hora_fin).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                  </div>
+                </div>
               </div>
-            )}
+
+              {/* Motivo */}
+              <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
+                <div className="text-[10px] font-extrabold text-corporate-blue uppercase tracking-wider">Motivo</div>
+                <div className="mt-2 text-sm bg-white p-3 rounded-xl border border-gray-200 text-gray-700">{registroDetalle.motivo || 'Sin detalles adicionales'}</div>
+                <div className="mt-3 text-xs text-gray-400">
+                  <span className="font-bold">Creado:</span> {new Date(registroDetalle.created_at).toLocaleString()}
+                </div>
+              </div>
+
+              {/* Acciones */}
+              {registroDetalle.estado === 'Pendiente' && (
+                <div className="flex flex-col sm:flex-row gap-3 justify-end border-t border-gray-200 pt-4">
+                  <button onClick={() => { setRegistroDetalle(null); navigate(registroDetalle._origen === 'registro' ? `/editar-nuevo-registro/${codigo}/${registroDetalle.nro_registro}` : `/editar-registro/${codigo}/${registroDetalle.nro_registro}`) }} className="flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-500 text-white text-sm font-bold rounded-xl border-none cursor-pointer hover:bg-amber-600 transition-colors">
+                    <Pencil size={14} /> Editar
+                  </button>
+                  <button onClick={() => eliminarRegistro(registroDetalle.nro_registro, registroDetalle._origen)} className="flex items-center justify-center gap-1.5 px-4 py-2 bg-red-500 text-white text-sm font-bold rounded-xl border-none cursor-pointer hover:bg-red-600 transition-colors">
+                    <Trash2 size={14} /> Eliminar
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

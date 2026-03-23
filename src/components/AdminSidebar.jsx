@@ -11,6 +11,13 @@ function AdminSidebar() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  const handleLogout = () => {
+    sessionStorage.removeItem('admin_usuario')
+    sessionStorage.removeItem('admin_rol')
+    sessionStorage.removeItem('admin_nombre')
+    navigate('/admin', { replace: true })
+  }
+
   useEffect(() => {
     const adminUsuario = sessionStorage.getItem('admin_usuario')
     if (adminUsuario) {
@@ -63,7 +70,7 @@ function AdminSidebar() {
   const links = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
     { label: 'Directorio', icon: Users, path: '/admin-panel' },
-    { label: 'Nuevo Personal', icon: UserPlus, path: '/admin/nuevo-personal' },    { label: 'Horarios', icon: Clock, path: '/admin/horarios' },    { label: 'Bitácora', icon: ScrollText, path: '/admin/bitacora' },
+    { label: 'Nuevo Personal', icon: UserPlus, path: '/admin/nuevo-personal' },    { label: 'Horarios', icon: Clock, path: '/admin/horarios' },    { label: 'Actividad', icon: ScrollText, path: '/admin/bitacora' },
     { label: 'Administradores', icon: ShieldCheck, path: '/admin/administradores' },
     { label: 'Configuración', icon: Settings, path: '/admin/configuracion' },
   ]
@@ -76,13 +83,27 @@ function AdminSidebar() {
   return (
     <>
       {/* Top bar */}
-      <header className="sticky top-0 z-50 bg-corporate-blue text-white shadow-md">
-        <div className="flex items-center justify-between px-4 h-14 max-w-7xl mx-auto">
-          <button onClick={() => setOpen(!open)} className="p-2 rounded-lg hover:bg-white/10 transition-colors border-none bg-transparent text-white cursor-pointer md:hidden">
-            {open ? <X size={24} /> : <Menu size={24} />}
-          </button>
-          <span className="text-sm font-bold tracking-wide uppercase">Portal Admin — SERTEC</span>
-          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-xs font-semibold bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors border-none text-white cursor-pointer">
+      <header className="sticky top-0 z-50 bg-corporate-blue text-white border-b border-white/10 shadow-sm">
+        <div className="flex items-center justify-between px-4 md:pl-60 h-14 w-full">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setOpen(!open)}
+              className="p-2 rounded-xl hover:bg-white/10 transition-colors border-none bg-transparent text-white cursor-pointer md:hidden"
+              aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+            >
+              {open ? <X size={22} /> : <Menu size={22} />}
+            </button>
+
+            <div className="min-w-0">
+              <div className="text-sm font-black tracking-wide leading-none truncate">Portal Admin</div>
+              <div className="text-[10px] text-white/60 font-bold uppercase tracking-widest leading-none truncate">SERTEC</div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl transition-colors text-white bg-white/10 hover:bg-white/20 border border-white/10 cursor-pointer"
+          >
             <LogOut size={16} /> Salir
           </button>
         </div>

@@ -18,6 +18,7 @@ function AdminEditPersonal() {
 
   const [codigo, setCodigo] = useState('')
   const [dni, setDni] = useState('')
+  const [email, setEmail] = useState('')
   const [nombres, setNombres] = useState('')
   const [apellidos, setApellidos] = useState('')
   const [cargo, setCargo] = useState('')
@@ -31,9 +32,16 @@ function AdminEditPersonal() {
   const PROJECT_URL = "https://pwzogtzcgcxiondlcfeo.supabase.co"
   const STORAGE_URL = `${PROJECT_URL}/storage/v1/object/public/fotos%20personal/`
 
+  const normalizarEmail = (value) => (value || '').trim().toLowerCase()
+  const esEmailValido = (value) => {
+    const v = normalizarEmail(value)
+    if (!v) return true
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+  }
+
   const seccionesDisponibles = [
     'CIL', 'CELSA', 'INSPECCION', 'NESTLE', 'CAD', 'CPEI',
-    'SERTEC', 'PPL LINDLEY', 'SPSA CORRECTIVO', 'BACKUS'
+    'SERTEC', 'LINDLEY', 'SPSA', 'BACKUS', 'ST GLOBAL'
   ]
 
   const cargosDisponibles = [
@@ -44,16 +52,23 @@ function AdminEditPersonal() {
     'ASISTENTE ADMNISTRATIVO DE CONTRATO',
     'ASISTENTE DE RUTA TECNICA 1', 'ASISTENTE DE RUTA TECNICA 2',
     'COORDINADOR DE SERVICIOS', 'COORDINADOR DE CONTRATO',
-    'JEFE DE SERVICIO TECNICO', 'TRAINEE PROFESIONAL', 'PRACTICANTE'
+    'JEFE DE SERVICIO TECNICO', 'PRACTICANTE'
   ]
 
   const areasDisponibles = [
     'SERTEC - TECNICO', 'SERTEC - ADM', 'SERTEC - SUPERVISOR TECNICO',
-    'CONTRATO LINDLEY PUCUSANA', 'CONTRATO NESTLE', 'CONTRATO BACKUS',
+    'CONTRATO LINDLEY', 'CONTRATO NESTLE', 'CONTRATO BACKUS',
     'CONTRATO SPSA LIMA', 'CONTRATO SPSA - AREQUIPA', 'CONTRATO SPSA - CHICLAYO'
   ]
 
   useEffect(() => {
+    const rolActual = sessionStorage.getItem('admin_rol') || 'admin'
+    if (rolActual !== 'super_admin') {
+      Swal.fire('Acceso restringido', 'Solo el Super Admin puede editar usuarios.', 'warning')
+      navigate('/admin-panel')
+      return
+    }
+
     const cargarDatos = async () => {
       setCargando(true)
 
@@ -71,6 +86,7 @@ function AdminEditPersonal() {
 
       setCodigo(data.codigo || '')
       setDni(data.dni || '')
+      setEmail(data.email || '')
       setNombres(data.nombres || '')
       setApellidos(data.apellidos || '')
       setCargo(data.cargo || '')
@@ -140,6 +156,10 @@ function AdminEditPersonal() {
       return Swal.fire('Campos requeridos', 'Código, DNI, Nombres y Apellidos son obligatorios', 'warning')
     }
 
+    if (!esEmailValido(email)) {
+      return Swal.fire('Email inválido', 'Ingresa un correo válido (ej: usuario@empresa.com)', 'warning')
+    }
+
     if (codigo.trim() !== codigoParam) {
       const { data: existe } = await supabase.from('personal').select('codigo').eq('codigo', codigo.trim()).single()
       if (existe) {
@@ -158,13 +178,10 @@ function AdminEditPersonal() {
 
     if (fotoFile) {
       const ext = fotoFile.name.split('.').pop()
-      fotoNombre = `${codigo.trim()}.${ext}`
+      fotoNombre = `${codigo.trim()}_${Date.now()}.${ext}`
 
       if (fotoActual) {
         await supabase.storage.from('fotos personal').remove([fotoActual])
-      }
-      if (fotoNombre !== fotoActual) {
-        await supabase.storage.from('fotos personal').remove([fotoNombre])
       }
 
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -183,6 +200,7 @@ function AdminEditPersonal() {
     const payload = {
       codigo: codigo.trim(),
       dni: dni.trim(),
+      email: normalizarEmail(email) || null,
       nombres: nombres.trim().toUpperCase(),
       apellidos: apellidos.trim().toUpperCase(),
       cargo: cargo || null,
@@ -193,10 +211,20 @@ function AdminEditPersonal() {
       foto: fotoNombre, id_grupo_horario: grupoHorarioId || null
       }
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from('personal')
       .update(payload)
       .eq('codigo', codigoParam)
+
+    // Compatibilidad: si aún no se ha agregado la columna email en BD.
+    if (error && /column\s+"?email"?\s+does not exist/i.test(error.message || '')) {
+      const { email: _omit, ...payloadSinEmail } = payload
+      const retry = await supabase.from('personal').update(payloadSinEmail).eq('codigo', codigoParam)
+      error = retry.error
+      if (!error) {
+        Swal.fire('Aviso', 'El campo Email aún no existe en la base de datos. Ejecuta el SQL de migración para guardar correos.', 'info')
+      }
+    }
 
     setEnviando(false)
 
@@ -338,6 +366,16 @@ function AdminEditPersonal() {
               <label className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1 block">DNI *</label>
               <input type="text" placeholder="8 dígitos" value={dni} onChange={e => setDni(e.target.value)} maxLength={8} required
                 className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1 block">Email</label>
+              <input
+                type="email"
+                placeholder="usuario@empresa.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all"
+              />
             </div>
             <div>
               <label className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1 block">Nombres *</label>

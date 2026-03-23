@@ -23,6 +23,13 @@ export async function logBitacora({
   registro_id = null,
 }) {
   try {
+    // Política solicitada: no registrar acciones realizadas por Super Admin.
+    // Se decide por el rol en sesión (front-end), para no tocar la BD.
+    if (tipo_usuario === 'admin') {
+      const rolActual = sessionStorage.getItem('admin_rol')
+      if (rolActual === 'super_admin') return
+    }
+
     await supabase.from('bitacora').insert({
       usuario,
       tipo_usuario,

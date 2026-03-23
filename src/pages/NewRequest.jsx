@@ -20,8 +20,7 @@ function NewRequest() {
   const [motivo, setMotivo] = useState('')
   const [lugarTrabajo, setLugarTrabajo] = useState('')
   const [tipoMarcacion, setTipoMarcacion] = useState('')
-  const [diaACompensar, setDiaACompensar] = useState('')
-  const [diaExtras, setDiaExtras] = useState('')
+  const [tipoTraslado, setTipoTraslado] = useState('VIAJE')
   const [dispositivoInicio, setDispositivoInicio] = useState('')
   const [dispositivoFin, setDispositivoFin] = useState('')
   const [configUI, setConfigUI] = useState({ lugarDisabled: false, lugarOpciones: [], reqDisabled: false })
@@ -35,6 +34,9 @@ function NewRequest() {
   const [marcaCargada, setMarcaCargada] = useState(false)
   const [marcasGPS, setMarcasGPS] = useState([])
   const [todasLasMarcas, setTodasLasMarcas] = useState([])
+  const [marcasDiaSiguiente, setMarcasDiaSiguiente] = useState([])
+  const [marcasExtraVisibles, setMarcasExtraVisibles] = useState(0)
+  const [finOffsetDias, setFinOffsetDias] = useState(0)
 
   const [diaLibreOnomastico, setDiaLibreOnomastico] = useState('')
   const [onomasticoInfo, setOnomasticoInfo] = useState(null)
@@ -43,13 +45,11 @@ function NewRequest() {
 
   const opcionesCipsa = [
     "POR SALIDA ANTES DE HORARIO",
-    "POR INGRESO FUERA DE HORARIO",
-    "COMPENSAR HORAS"
+    "POR INGRESO FUERA DE HORARIO"
   ]
 
   const opcionesTecnico = [
-    "POR TRASLADO DE VIAJE",
-    "POR TRASLADO DE EQUIPOS",
+    "TRASLADO",
     "SOBRETIEMPO",
     "ONOMÁSTICO"
   ]
@@ -59,6 +59,25 @@ function NewRequest() {
     if (tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO') return opcionesTecnico
     return []
   }, [tipoCompensacion])
+
+  const marcasVisibles = useMemo(() => {
+    return [...todasLasMarcas, ...marcasDiaSiguiente.slice(0, marcasExtraVisibles)]
+  }, [todasLasMarcas, marcasDiaSiguiente, marcasExtraVisibles])
+
+  const addDaysISO = (dateStr, days) => {
+    const [y, m, d] = dateStr.split('-').map(Number)
+    const dt = new Date(Date.UTC(y, m - 1, d))
+    dt.setUTCDate(dt.getUTCDate() + days)
+    return dt.toISOString().slice(0, 10)
+  }
+
+  const habilitaMarcasSiguienteDia = tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO'
+
+  useEffect(() => {
+    setMarcasExtraVisibles(0)
+    setFinOffsetDias(0)
+    setMarcasDiaSiguiente([])
+  }, [fechaDia])
 
   // --- DATA LOADING ---
   useEffect(() => {
@@ -78,13 +97,12 @@ function NewRequest() {
   useEffect(() => {
     if (!cargandoDatos) {
       switch (tipoSolicitud) {
-        case "POR TRASLADO DE VIAJE":
-        case "POR TRASLADO DE EQUIPOS":
-        case "SOBRETIEMPO":
-          setLugarTrabajo(""); setConfigUI({ lugarDisabled: false, lugarOpciones: ["SERTEC", "CLIENTE"], reqDisabled: false }); break
+          case "TRASLADO":
+            setLugarTrabajo("N/A"); setConfigUI({ lugarDisabled: true, lugarOpciones: ["N/A"], reqDisabled: false }); break
+          case "SOBRETIEMPO":
+            setLugarTrabajo(""); setConfigUI({ lugarDisabled: false, lugarOpciones: ["SERTEC", "CLIENTE"], reqDisabled: false }); break
         case "POR SALIDA ANTES DE HORARIO":
         case "POR INGRESO FUERA DE HORARIO":
-        case "COMPENSAR HORAS":
           setLugarTrabajo("N/A"); setConfigUI({ lugarDisabled: true, lugarOpciones: ["N/A"], reqDisabled: false }); break
         case "ONOMÁSTICO":
           setLugarTrabajo("N/A"); setRequerimiento("N/A"); setTipoMarcacion("N/A")
@@ -146,24 +164,44 @@ function NewRequest() {
     const cargarRegistro = async () => {
       const { data, error } = await supabase.from('registro_horas').select('*').eq('nro_registro', nroRegistro).single()
       if (error || !data) { navigate(`/registros/${codigo}`); return }
-      if (["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS"].includes(data.tipo_solicitud)) {
+      if (["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO"].includes(data.tipo_solicitud)) {
         setTipoCompensacion("COMPENSACIÓN A FAVOR DE CIPSA")
       } else {
         setTipoCompensacion("COMPENSACIÓN A FAVOR DEL TÉCNICO")
       }
-      setTipoSolicitud(data.tipo_solicitud); setLugarTrabajo(data.lugar_trabajo); setTipoMarcacion(data.tipo_de_marcacion)
+      if (data.tipo_solicitud === 'POR TRASLADO DE VIAJE') {
+        setTipoSolicitud('TRASLADO')
+        setTipoTraslado('VIAJE')
+      } else if (data.tipo_solicitud === 'POR TRASLADO DE EQUIPOS') {
+        setTipoSolicitud('TRASLADO')
+        setTipoTraslado('TRASLADO DE EQUIPOS')
+      } else {
+        setTipoSolicitud(data.tipo_solicitud)
+      }
+      setLugarTrabajo(data.lugar_trabajo); setTipoMarcacion(data.tipo_de_marcacion)
       setDispositivoInicio(data.dispositivo_inicio || ''); setDispositivoFin(data.dispositivo_fin || '');
-      setDiaACompensar(data.dia_a_compensar || ''); setDiaExtras(data.dia_extras_registradas || '');
       setRequerimiento(data.requerimiento || ''); setMotivo(data.motivo || '')
       if (data.tipo_solicitud === 'ONOMÁSTICO' && data.fecha_hora_inicio) {
         const d = new Date(data.fecha_hora_inicio); const offset = d.getTimezoneOffset()
         setDiaLibreOnomastico(new Date(d.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0])
       } else if (data.ingreso) {
         const d = new Date(data.ingreso); const offset = d.getTimezoneOffset()
-        setFechaDia(new Date(d.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0])
+        const ingresoDia = new Date(d.getTime() - (offset * 60 * 1000)).toISOString().split('T')[0]
+        setFechaDia(ingresoDia)
         setRealInicio(d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false }))
       }
-      if (data.tipo_solicitud !== 'ONOMÁSTICO' && data.salida) setRealFin(new Date(data.salida).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false }))
+      if (data.tipo_solicitud !== 'ONOMÁSTICO' && data.salida) {
+        const sd = new Date(data.salida)
+        const soff = sd.getTimezoneOffset()
+        const salidaDia = new Date(sd.getTime() - (soff * 60 * 1000)).toISOString().split('T')[0]
+        setRealFin(sd.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false }))
+        if (data.ingreso) {
+          const id = new Date(data.ingreso)
+          const ioff = id.getTimezoneOffset()
+          const ingresoDia = new Date(id.getTime() - (ioff * 60 * 1000)).toISOString().split('T')[0]
+          if (salidaDia > ingresoDia) setFinOffsetDias(1)
+        }
+      }
       setCargandoDatos(false)
     }
     cargarRegistro()
@@ -195,26 +233,80 @@ function NewRequest() {
         // Trakker
         const { data: d1, error: e1 } = await supabase.from('marcaciones').select('hora_ingreso, hora_salida').eq('codigo_trabajador', codigo).eq('fecha', fechaDia).single()
         if (d1 && !e1) {
-          if (d1.hora_ingreso) marcas.push({ hora: d1.hora_ingreso.slice(0, 5), dispositivo: 'TRAKKER' })
-          if (d1.hora_salida && d1.hora_salida !== d1.hora_ingreso) marcas.push({ hora: d1.hora_salida.slice(0, 5), dispositivo: 'TRAKKER' })
+          if (d1.hora_ingreso) marcas.push({ hora: d1.hora_ingreso.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 0 })
+          if (d1.hora_salida && d1.hora_salida !== d1.hora_ingreso) marcas.push({ hora: d1.hora_salida.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 0 })
           setMarcaCargada(true)
         } else {
           setMarcaCargada(false)
         }
 
-        // GPS
-        const { data: d2, error: e2 } = await supabase.from('marcaciones_gps').select('fecha_marca').eq('codigo_trabajador', codigo).gte('fecha_marca', `${fechaDia}T00:00:00`).lte('fecha_marca', `${fechaDia}T23:59:59`)
+        // GPS (APP)
+        const { data: d2, error: e2 } = await supabase
+          .from('marcaciones_gps')
+          .select('id_marca, fecha_marca, cliente, otr_referencia, observacion')
+          .eq('codigo_trabajador', codigo)
+          .gte('fecha_marca', `${fechaDia}T00:00:00`)
+          .lte('fecha_marca', `${fechaDia}T23:59:59`)
         if (d2 && !e2) {
           d2.forEach(m => {
             const h = new Date(m.fecha_marca).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' })
-            marcas.push({ hora: h, dispositivo: 'APP' })
+            marcas.push({
+              hora: h,
+              dispositivo: 'APP',
+              offsetDias: 0,
+              idMarca: m.id_marca,
+              cliente: m.cliente,
+              otrosDatosReq: m.otr_referencia,
+              observacion: m.observacion,
+            })
           })
         }
 
         // Sort and distinct
-        marcas.sort((a, b) => a.hora.localeCompare(b.hora))
-        const unicas = marcas.filter((m, index, self) => index === self.findIndex((t) => t.hora === m.hora && t.dispositivo === m.dispositivo))
+        marcas.sort((a, b) => a.offsetDias - b.offsetDias || a.hora.localeCompare(b.hora))
+        const marcaKey = (m) => `${m.offsetDias ?? 0}|${m.dispositivo}|${m.hora}|${m.idMarca ?? ''}`
+        const unicas = marcas.filter((m, index, self) => index === self.findIndex((t) => marcaKey(t) === marcaKey(m)))
         setTodasLasMarcas(unicas)
+
+        if (habilitaMarcasSiguienteDia) {
+          const fechaSiguiente = addDaysISO(fechaDia, 1)
+          let marcasNext = []
+
+          const { data: nd1, error: ne1 } = await supabase.from('marcaciones').select('hora_ingreso, hora_salida').eq('codigo_trabajador', codigo).eq('fecha', fechaSiguiente).single()
+          if (nd1 && !ne1) {
+            if (nd1.hora_ingreso) marcasNext.push({ hora: nd1.hora_ingreso.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 1 })
+            if (nd1.hora_salida && nd1.hora_salida !== nd1.hora_ingreso) marcasNext.push({ hora: nd1.hora_salida.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 1 })
+          }
+
+          const { data: nd2, error: ne2 } = await supabase
+            .from('marcaciones_gps')
+            .select('id_marca, fecha_marca, cliente, otr_referencia, observacion')
+            .eq('codigo_trabajador', codigo)
+            .gte('fecha_marca', `${fechaSiguiente}T00:00:00`)
+            .lte('fecha_marca', `${fechaSiguiente}T23:59:59`)
+          if (nd2 && !ne2) {
+            nd2.forEach(m => {
+              const h = new Date(m.fecha_marca).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' })
+              marcasNext.push({
+                hora: h,
+                dispositivo: 'APP',
+                offsetDias: 1,
+                idMarca: m.id_marca,
+                cliente: m.cliente,
+                otrosDatosReq: m.otr_referencia,
+                observacion: m.observacion,
+              })
+            })
+          }
+
+          marcasNext.sort((a, b) => a.hora.localeCompare(b.hora))
+          const unicasNext = marcasNext.filter((m, index, self) => index === self.findIndex((t) => marcaKey(t) === marcaKey(m)))
+          setMarcasDiaSiguiente(unicasNext)
+        } else {
+          setMarcasDiaSiguiente([])
+          setMarcasExtraVisibles(0)
+          setFinOffsetDias(0)
+        }
 
         if (!esEdicion) {
           if (unicas.length > 0) {
@@ -223,24 +315,36 @@ function NewRequest() {
             if (unicas.length > 1) {
               setRealFin(unicas[unicas.length - 1].hora)
               setDispositivoFin(unicas[unicas.length - 1].dispositivo)
+              setFinOffsetDias(unicas[unicas.length - 1].offsetDias || 0)
             } else {
               setRealFin('')
               setDispositivoFin('')
+              setFinOffsetDias(0)
             }
           } else {
             setRealInicio('')
             setRealFin('')
             setDispositivoInicio('')
             setDispositivoFin('')
+            setFinOffsetDias(0)
           }
         }
       } catch (e) {
         setMarcaCargada(false)
         setTodasLasMarcas([])
+        setMarcasDiaSiguiente([])
       }
     }
     cargarMarcas()
-  }, [fechaDia, codigo, cargandoDatos, esEdicion])
+  }, [fechaDia, codigo, cargandoDatos, esEdicion, habilitaMarcasSiguienteDia])
+
+  useEffect(() => {
+    if (!esEdicion) return
+    if (finOffsetDias !== 1) return
+    if (!realFin || !dispositivoFin) return
+    const idx = marcasDiaSiguiente.findIndex(m => m.hora === realFin && m.dispositivo === dispositivoFin)
+    if (idx >= 0 && marcasExtraVisibles < idx + 1) setMarcasExtraVisibles(idx + 1)
+  }, [esEdicion, finOffsetDias, realFin, dispositivoFin, marcasDiaSiguiente, marcasExtraVisibles])
 
   // Calculation preview
   const previewCalculo = useMemo(() => {
@@ -249,15 +353,144 @@ function NewRequest() {
     if (tipoSolicitud === "ONOMÁSTICO") return null
     const getMins = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
     const rIn = getMins(realInicio), rOut = getMins(realFin)
+    const finOffset = finOffsetDias || 0
+
+    // Validar orden y duplicidad
+    if (finOffset === 0 && realInicio === realFin && dispositivoInicio === dispositivoFin) {
+      return {
+        texto: 'MARCACIONES IDÉNTICAS',
+        subtexto: 'La hora de inicio y fin no pueden ser el mismo registro.',
+        color: '#b45309', bg: 'bg-amber-50', icon: AlertTriangle, border: 'border-amber-400',
+        mins: 0,
+        invalido: true,
+      }
+    }
+
+    if (finOffset === 0 && rIn > rOut) {
+      return {
+        texto: 'ORDEN INCORRECTO',
+        subtexto: 'La hora de fin debe ser posterior a la hora de inicio.',
+        color: '#b45309', bg: 'bg-amber-50', icon: AlertTriangle, border: 'border-amber-400',
+        mins: 0,
+        invalido: true,
+      }
+    }
+
     const pIn = progInicio ? getMins(progInicio) : 0, pOut = progFin ? getMins(progFin) : 0
     const pTotal = pOut > 0 ? (pOut > pIn ? pOut - pIn : (pOut + 1440) - pIn) : 0
-    const rTotal = rOut >= rIn ? rOut - rIn : (rOut + 1440) - rIn
-    const diffMins = rTotal - pTotal
+    const rTotal = (rOut + (finOffset * 1440)) - rIn
+    const esDescuento = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO"].includes(tipoSolicitud)
+    const esAumento = ["TRASLADO", "SOBRETIEMPO"].includes(tipoSolicitud)
+
+    // Cálculo:
+    // - TRASLADO: duración entre INICIO y FIN
+    // - SOBRETIEMPO: extra del tramo seleccionado fuera de horario, aplicando flex (compensa tardanza/salida temprana)
+    // - CIPSA (descuento): diferencia vs jornada programada
+    const calcularExtraConFlex = () => {
+      if (!progInicio || !progFin || pOut === 0) {
+        // Día libre o sin horario: todo el rango cuenta como extra
+        return rTotal
+      }
+
+      const selStart = rIn
+      const selEnd = rOut + (finOffset * 1440)
+      const schedStart = pIn
+      const schedEnd = pOut > pIn ? pOut : (pOut + 1440)
+
+      const tramoTotalmenteFuera = selEnd <= schedStart || selStart >= schedEnd
+      if (tramoTotalmenteFuera) {
+        return Math.max(0, selEnd - selStart)
+      }
+
+      const extraAntes = Math.max(0, Math.min(selEnd, schedStart) - selStart)
+      const extraDespues = Math.max(0, selEnd - Math.max(selStart, schedEnd))
+      const extraFueraHorario = extraAntes + extraDespues
+
+      // Flexibilidad basada en marcaciones del día base (offset 0)
+      let baseStart = null
+      let baseEnd = null
+      if (todasLasMarcas && todasLasMarcas.length > 0) {
+        const mins = todasLasMarcas
+          .filter(m => (m?.offsetDias ?? 0) === 0)
+          .map(m => getMins(m.hora))
+          .filter(v => Number.isFinite(v))
+        if (mins.length > 0) {
+          baseStart = Math.min(...mins)
+          baseEnd = Math.max(...mins)
+        }
+      }
+
+      const tardanza = baseStart == null ? 0 : Math.max(0, baseStart - schedStart)
+      const salidaTemprana = baseEnd == null ? 0 : Math.max(0, schedEnd - baseEnd)
+
+      return Math.max(0, extraFueraHorario - tardanza - salidaTemprana)
+    }
+
+    let diffMins
+    if (tipoSolicitud === 'TRASLADO') {
+      diffMins = calcularExtraConFlex()
+    } else if (tipoSolicitud === 'SOBRETIEMPO') {
+      diffMins = calcularExtraConFlex()
+    } else {
+      diffMins = rTotal - pTotal
+    }
+
+    if (tipoSolicitud === 'SOBRETIEMPO' && diffMins <= 0) {
+      return {
+        texto: 'SIN SOBRETIEMPO',
+        subtexto: 'No excedes tu jornada programada (flexibilidad aplicada).',
+        color: '#475569', bg: 'bg-gray-50', icon: Scale, border: 'border-gray-300',
+        mins: 0,
+        invalido: true,
+      }
+    }
+
+    if (esDescuento && diffMins >= 0) {
+      return {
+        texto: 'NO APLICA PARA ESTA SOLICITUD',
+        subtexto: diffMins === 0
+          ? 'Has cumplido tu jornada exacta, no hay tiempo que justificar o descontar.'
+          : 'Tienes horas extra, esta opción es solo cuando no cumples la jornada.',
+        color: '#b45309', bg: 'bg-amber-50', icon: AlertTriangle, border: 'border-amber-400',
+        mins: diffMins,
+        invalido: true,
+      }
+    }
+
+    if (esAumento && diffMins <= 0) {
+      return {
+        texto: 'NO APLICA PARA ESTA SOLICITUD',
+        subtexto: diffMins === 0
+          ? 'No hay diferencia entre inicio y fin.'
+          : 'Selecciona una marcación de fin posterior al inicio.',
+        color: '#b45309', bg: 'bg-amber-50', icon: AlertTriangle, border: 'border-amber-400',
+        mins: diffMins,
+        invalido: true,
+      }
+    }
+
+    if (diffMins > 0 && diffMins <= 60) {
+      return {
+        texto: 'MÍNIMO 1 HORA',
+        subtexto: 'Si el registro es a favor, debe ser mayor a 1 hora.',
+        color: '#b45309', bg: 'bg-amber-50', icon: AlertTriangle, border: 'border-amber-400',
+        mins: diffMins,
+        invalido: true,
+      }
+    }
+
     if (diffMins === 0) return { texto: 'TIEMPO EXACTO', subtexto: 'Cumplió la jornada sin diferencias', color: '#475569', bg: 'bg-gray-50', icon: Scale, border: 'border-gray-300', mins: 0 }
-    if (diffMins > 0) return { texto: `+${Math.floor(diffMins / 60)}h ${diffMins % 60}m A FAVOR`, subtexto: pTotal === 0 ? 'Trabajó en día libre' : 'Excedente luego de descontar tardanzas', color: '#15803d', bg: 'bg-green-50', icon: TrendingUp, border: 'border-green-400', mins: diffMins }
+    if (diffMins > 0) {
+      const sub = tipoSolicitud === 'SOBRETIEMPO'
+        ? (pTotal === 0 ? 'Trabajó en día libre' : 'Tiempo extra neto (flexibilidad aplicada)')
+        : esAumento
+          ? 'Duración registrada entre marcaciones'
+          : (pTotal === 0 ? 'Trabajó en día libre' : 'Excedente luego de descontar tardanzas')
+      return { texto: `+${Math.floor(diffMins / 60)}h ${diffMins % 60}m A FAVOR`, subtexto: sub, color: '#15803d', bg: 'bg-green-50', icon: TrendingUp, border: 'border-green-400', mins: diffMins }
+    }
     const absMins = Math.abs(diffMins)
     return { texto: `-${Math.floor(absMins / 60)}h ${absMins % 60}m A DESCONTAR`, subtexto: 'Déficit después de balancear horas', color: '#7f1d1d', bg: 'bg-red-50', icon: TrendingDown, border: 'border-red-400', mins: diffMins }
-  }, [realInicio, realFin, progInicio, progFin, tipoSolicitud])
+  }, [realInicio, realFin, progInicio, progFin, tipoSolicitud, dispositivoInicio, dispositivoFin, finOffsetDias, todasLasMarcas])
 
   // Save
   const guardarRegistro = async (e) => {
@@ -278,36 +511,90 @@ function NewRequest() {
       return
     }
     if (!fechaDia || !realInicio || !realFin) return Swal.fire('Faltan datos', 'Completa fecha y horas', 'warning')
+
+    if (previewCalculo && previewCalculo.invalido) {
+      return Swal.fire('Registro no válido', previewCalculo.subtexto, 'warning')
+    }
+
+    // Evitar duplicidad: no permitir reutilizar las mismas marcaciones (hora+dispositivo)
+    const fechaFinReal = finOffsetDias > 0 ? addDaysISO(fechaDia, finOffsetDias) : fechaDia
+    const ingresoReal = new Date(`${fechaDia}T${realInicio}:00`)
+    const salidaReal = new Date(`${fechaFinReal}T${realFin}:00`)
+
+    try {
+      const rangoInicio = new Date(`${fechaDia}T00:00:00`)
+      const rangoFin = new Date(`${addDaysISO(fechaDia, 1)}T23:59:59`)
+      const cols = 'nro_registro, estado, tipo_solicitud, ingreso, salida, dispositivo_inicio, dispositivo_fin'
+
+      const [q1, q2] = await Promise.all([
+        supabase.from('registro_horas').select(cols).eq('codigo_trabajador', codigo).gte('ingreso', rangoInicio.toISOString()).lte('ingreso', rangoFin.toISOString()),
+        supabase.from('nuevo_registro_horas').select(cols).eq('codigo_trabajador', codigo).gte('ingreso', rangoInicio.toISOString()).lte('ingreso', rangoFin.toISOString()),
+      ])
+
+      const filas = [
+        ...(q1?.data || []).map(r => ({ ...r, _tabla: 'registro_horas' })),
+        ...(q2?.data || []).map(r => ({ ...r, _tabla: 'nuevo_registro_horas' })),
+      ]
+
+      const miInicioKey = `${ingresoReal.toISOString()}|${dispositivoInicio || ''}`
+      const miFinKey = `${salidaReal.toISOString()}|${dispositivoFin || ''}`
+
+      const duplicado = filas.find(r => {
+        if (r?.estado === 'Rechazado') return false
+        if (esEdicion && r?._tabla === 'registro_horas' && String(r?.nro_registro) === String(nroRegistro)) return false
+        const inicioKey = `${new Date(r.ingreso).toISOString()}|${r.dispositivo_inicio || ''}`
+        const finKey = `${new Date(r.salida).toISOString()}|${r.dispositivo_fin || ''}`
+        return inicioKey === miInicioKey || finKey === miFinKey
+      })
+
+      if (duplicado) {
+        return Swal.fire(
+          'Duplicado detectado',
+          `Ya existe un registro (${duplicado._tabla === 'registro_horas' ? 'solicitud' : 'registro'}) #${duplicado.nro_registro} (${duplicado.tipo_solicitud}) que usa estas mismas marcaciones.`,
+          'warning'
+        )
+      }
+    } catch {
+      // Si falla la consulta, no bloqueamos al usuario (evita falso positivo)
+    }
+
     setEnviando(true)
     let fInicio, fFin
     if (previewCalculo && previewCalculo.mins !== 0) {
       const absMins = Math.abs(previewCalculo.mins)
       fInicio = new Date(`${fechaDia}T${realInicio}:00`); fFin = new Date(fInicio.getTime() + (absMins * 60000))
     } else { fInicio = new Date(`${fechaDia}T${realInicio}:00`); fFin = new Date(`${fechaDia}T${realInicio}:00`) }
+
+    let finalTipoSolicitud = tipoSolicitud
+    if (tipoSolicitud === 'TRASLADO') {
+      if (tipoTraslado === 'VIAJE') finalTipoSolicitud = 'POR TRASLADO DE VIAJE'
+      else if (tipoTraslado === 'TRASLADO DE EQUIPOS') finalTipoSolicitud = 'POR TRASLADO DE EQUIPOS'
+    }
+
     const payload = { 
       nombre_empleado: trabajador ? `${trabajador.nombres} ${trabajador.apellidos}` : '', 
       codigo_trabajador: codigo, 
       area: trabajador?.area, 
       cargo: trabajador?.cargo, 
-      tipo_solicitud: tipoSolicitud, 
+      tipo_solicitud: finalTipoSolicitud, 
       requerimiento, 
       motivo, 
       lugar_trabajo: lugarTrabajo, 
       tipo_de_marcacion: tipoMarcacion, 
       dispositivo_inicio: dispositivoInicio, 
       dispositivo_fin: dispositivoFin, 
-      dia_a_compensar: diaACompensar || null, 
-      dia_extras_registradas: diaExtras || null, 
+      dia_a_compensar: null, 
+      dia_extras_registradas: null, 
       fecha_hora_inicio: fInicio, 
       fecha_hora_fin: fFin, 
       ingreso: new Date(`${fechaDia}T${realInicio}:00`), 
-      salida: new Date(`${fechaDia}T${realFin}:00`), 
+      salida: new Date(`${fechaFinReal}T${realFin}:00`), 
       estado: 'Pendiente' 
     }
     const { error } = esEdicion ? await supabase.from('registro_horas').update(payload).eq('nro_registro', nroRegistro) : await supabase.from('registro_horas').insert([payload])
     setEnviando(false)
     if (error) Swal.fire('Error', error.message, 'error')
-    else { logBitacora({ usuario: codigo, tipo_usuario: 'empleado', accion: esEdicion ? 'editar' : 'crear', modulo: 'registro_horas', descripcion: `${esEdicion ? 'Editó' : 'Creó'} solicitud ${tipoSolicitud}`, registro_id: esEdicion ? String(nroRegistro) : null, datos_nuevos: { tipo_solicitud: tipoSolicitud, fecha: fechaDia, inicio: realInicio, fin: realFin } }); Swal.fire({ title: '¡Procesado!', text: 'Registro guardado correctamente', icon: 'success', timer: 1500, showConfirmButton: false }); navigate(`/registros/${codigo}`) }
+    else { logBitacora({ usuario: codigo, tipo_usuario: 'empleado', accion: esEdicion ? 'editar' : 'crear', modulo: 'registro_horas', descripcion: `${esEdicion ? 'Editó' : 'Creó'} solicitud ${tipoSolicitud}`, registro_id: esEdicion ? String(nroRegistro) : null, datos_nuevos: { tipo_solicitud: finalTipoSolicitud, fecha: fechaDia, inicio: realInicio, fin: realFin } }); Swal.fire({ title: '¡Procesado!', text: 'Registro guardado correctamente', icon: 'success', timer: 1500, showConfirmButton: false }); navigate(`/registros/${codigo}`) }
   }
 
   if (cargandoDatos || !trabajador) return <div className="flex items-center justify-center min-h-[50vh] text-gray-400">Cargando...</div>
@@ -347,89 +634,100 @@ function NewRequest() {
 
         {/* Form */}
         <form onSubmit={guardarRegistro} className="p-5 space-y-5">
-          {/* Row 1: Type + Req */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-1">
-              <label className={labelCls}>Tipo de Solicitud</label>
-              <select 
-                className={`${inputCls} font-medium ${esEdicion ? disabledCls : ''} ${
-                  tipoCompensacion === 'COMPENSACIÓN A FAVOR DE CIPSA' ? '!text-red-700 !bg-red-50 !border-red-300' : 
-                  tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO' ? '!text-emerald-700 !bg-emerald-50 !border-emerald-300' : 
-                  ''
-                }`} 
-                value={tipoCompensacion} 
-                onChange={(e) => { setTipoCompensacion(e.target.value); setTipoSolicitud(''); }} 
-                required 
-                disabled={esEdicion}
-              >
-                <option value="" className="bg-white text-gray-900">Seleccione...</option>
-                <option value="COMPENSACIÓN A FAVOR DE CIPSA" className="bg-white text-gray-900">FAVOR DE CIPSA (RESTAR)</option>
-                <option value="COMPENSACIÓN A FAVOR DEL TÉCNICO" className="bg-white text-gray-900">FAVOR DEL TÉCNICO (SUMAR)</option>
-              </select>
-            </div>
-            <div className="md:col-span-1">
-              <label className={labelCls}>Caso</label>
-              <select 
-                className={`${inputCls} font-medium ${esEdicion ? disabledCls : ''} ${
-                  tipoCompensacion === 'COMPENSACIÓN A FAVOR DE CIPSA' ? '!text-red-700 !bg-red-50 !border-red-300' :
-                  tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO' ? '!text-emerald-700 !bg-emerald-50 !border-emerald-300' :
-                  ''
-                }`} 
-                value={tipoSolicitud} 
-                onChange={(e) => setTipoSolicitud(e.target.value)} 
-                required 
-                disabled={esEdicion || !tipoCompensacion}
-              >
-                <option value="" className="bg-white text-gray-900">Seleccione el caso...</option>
-                {opcionesActuales.map(op => (
-                  <option 
-                    key={op} 
-                    value={op} 
-                    className={`bg-white ${
-                      tipoCompensacion === 'COMPENSACIÓN A FAVOR DE CIPSA' ? 'text-red-700 font-semibold' : 
-                      tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO' ? 'text-emerald-700 font-semibold' : 
-                      'text-gray-900'
-                    }`}
-                  >
-                    {op}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="md:col-span-1">
-              <label className={labelCls}>Requerimiento</label>
-              <input className={`${inputCls} ${configUI.reqDisabled ? disabledCls : ''}`} type="text" placeholder={configUI.reqDisabled ? "N/A" : "Ej. 202*******"} value={requerimiento} onChange={(e) => setRequerimiento(e.target.value)} disabled={configUI.reqDisabled} />
+          {/* --- SECCIÓN 1: DATOS DEL CASO --- */}
+          <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100 mb-6 shadow-sm">
+            <h3 className="text-[10px] font-black tracking-widest text-corporate-blue uppercase mb-4 flex items-center gap-2">
+              <span className="bg-corporate-blue text-white w-4 h-4 rounded-full flex justify-center items-center text-[10px]">1</span> 
+              CLASIFICACIÓN
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className={labelCls}>Tipo de Solicitud</label>
+                <select 
+                  className={`${inputCls} font-medium ${esEdicion ? disabledCls : ''} ${
+                    tipoCompensacion === 'COMPENSACIÓN A FAVOR DE CIPSA' ? '!text-red-700 !bg-red-50 !border-red-300' : 
+                    tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO' ? '!text-emerald-700 !bg-emerald-50 !border-emerald-300' : 
+                    ''
+                  }`} 
+                  value={tipoCompensacion} 
+                  onChange={(e) => { setTipoCompensacion(e.target.value); setTipoSolicitud(''); }} 
+                  required 
+                  disabled={esEdicion}
+                >
+                  <option value="" className="bg-white text-gray-900">Seleccione...</option>
+                  <option value="COMPENSACIÓN A FAVOR DE CIPSA" className="bg-white text-gray-900">FAVOR DE CIPSA (RESTAR)</option>
+                  <option value="COMPENSACIÓN A FAVOR DEL TÉCNICO" className="bg-white text-gray-900">FAVOR DEL TÉCNICO (SUMAR)</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Caso Específico</label>
+                <select 
+                  className={`${inputCls} font-medium ${esEdicion ? disabledCls : ''} ${
+                    tipoCompensacion === 'COMPENSACIÓN A FAVOR DE CIPSA' ? '!text-red-700 !bg-red-50 !border-red-300' :
+                    tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO' ? '!text-emerald-700 !bg-emerald-50 !border-emerald-300' :
+                    ''
+                  }`} 
+                  value={tipoSolicitud} 
+                  onChange={(e) => setTipoSolicitud(e.target.value)} 
+                  required 
+                  disabled={esEdicion || !tipoCompensacion}
+                >
+                  <option value="" className="bg-white text-gray-900">Seleccione el caso...</option>
+                  {opcionesActuales.map(op => (
+                    <option 
+                      key={op} 
+                      value={op} 
+                      className={`bg-white ${
+                        tipoCompensacion === 'COMPENSACIÓN A FAVOR DE CIPSA' ? 'text-red-700 font-semibold' : 
+                        tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO' ? 'text-emerald-700 font-semibold' : 
+                        'text-gray-900'
+                      }`}
+                    >
+                      {op}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* Row 2: Lugar + Marcación + Motivo (hidden for ONOMÁSTICO) */}
+          {/* --- SECCIÓN 2: DETALLES DE LA ACTIVIDAD --- */}
           {tipoSolicitud !== 'ONOMÁSTICO' && (
-            <>
-              {tipoSolicitud === 'COMPENSAR HORAS' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className={labelCls}>Día a Compensar (Faltó/Tarde)</label>
-                    <input className={inputCls} type="date" value={diaACompensar} onChange={e => setDiaACompensar(e.target.value)} required style={{ colorScheme: 'light' }} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Día que hizo las Extras</label>
-                    <input className={inputCls} type="date" value={diaExtras} onChange={e => setDiaExtras(e.target.value)} required style={{ colorScheme: 'light' }} />
-                  </div>
+            <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100 mb-6 shadow-sm">
+              <h3 className="text-[10px] font-black tracking-widest text-corporate-blue uppercase mb-4 flex items-center gap-2">
+                <span className="bg-corporate-blue text-white w-4 h-4 rounded-full flex justify-center items-center text-[10px]">2</span> 
+                INFORMACIÓN ADICIONAL
+              </h3>
+              
+              <div className={`grid grid-cols-1 ${tipoSolicitud === 'TRASLADO' ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-5 mb-5`}>
+                <div className={configUI.reqDisabled && requerimiento === 'N/A' ? 'hidden md:block opacity-50' : ''}>
+                  <label className={labelCls}>Nro. Requerimiento</label>
+                  <input className={`${inputCls} ${configUI.reqDisabled ? disabledCls : ''}`} type="text" placeholder={configUI.reqDisabled ? "N/A" : "Ej. 202*******"} value={requerimiento} onChange={(e) => setRequerimiento(e.target.value)} disabled={configUI.reqDisabled} />
                 </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
                 <div>
-                  <label className={labelCls}>Lugar</label>
+                  <label className={labelCls}>Lugar de Trabajo</label>
                   <select className={`${inputCls} ${configUI.lugarDisabled ? disabledCls : ''}`} value={lugarTrabajo} onChange={(e) => setLugarTrabajo(e.target.value)} required disabled={configUI.lugarDisabled && configUI.lugarOpciones.length === 1}>
                     {configUI.lugarOpciones.length > 0 ? configUI.lugarOpciones.map(op => <option key={op} value={op}>{op}</option>) : <><option value="">Elegir...</option><option value="SERTEC">SERTEC</option><option value="CLIENTE">CLIENTE</option></>}
                   </select>
                 </div>
+                
+                {tipoSolicitud === 'TRASLADO' && (
+                  <div>
+                    <label className={labelCls}>Tipo de Traslado</label>
+                    <select className={inputCls} value={tipoTraslado} onChange={e => setTipoTraslado(e.target.value)} required>
+                      <option value="VIAJE">VIAJE</option>
+                      <option value="TRASLADO DE EQUIPOS">TRASLADO DE EQUIPOS</option>
+                    </select>
+                  </div>
+                )}
               </div>
+
               <div>
                 <label className={labelCls}>Detalles / Motivo <span className="text-gray-400 font-normal normal-case">(Opcional)</span></label>
-                <input className={inputCls} type="text" placeholder="Describe brevemente la actividad..." value={motivo} onChange={e => setMotivo(e.target.value)} />
+                <input className={inputCls} type="text" placeholder="Describe brevemente la actividad o motivo..." value={motivo} onChange={e => setMotivo(e.target.value)} />
               </div>
-            </>
+            </div>
           )}
 
           <hr className="border-gray-200" />
@@ -507,13 +805,30 @@ function NewRequest() {
 
               {/* All Marks */}
               <div className="bg-gradient-to-br from-gray-50 to-slate-50 border border-gray-200 border-l-4 border-l-corporate-blue rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock size={18} className="text-corporate-blue" />
-                  <strong className="text-xs text-corporate-blue tracking-wider uppercase">Registro de Marcaciones</strong>
-                  {todasLasMarcas.length > 0 && <span className="text-[10px] bg-corporate-blue text-white px-2 py-0.5 rounded-full font-bold">{todasLasMarcas.length}</span>}
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <Clock size={18} className="text-corporate-blue" />
+                    <strong className="text-xs text-corporate-blue tracking-wider uppercase">Registro de Marcaciones</strong>
+                    {marcasVisibles.length > 0 && <span className="text-[10px] bg-corporate-blue text-white px-2 py-0.5 rounded-full font-bold">{marcasVisibles.length}</span>}
+                  </div>
+                  {habilitaMarcasSiguienteDia && (
+                    <button
+                      type="button"
+                      className={`px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${
+                        marcasDiaSiguiente.length === 0 || marcasExtraVisibles >= marcasDiaSiguiente.length
+                          ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
+                          : 'bg-white text-corporate-blue border-gray-200 hover:bg-gray-50'
+                      }`}
+                      disabled={marcasDiaSiguiente.length === 0 || marcasExtraVisibles >= marcasDiaSiguiente.length}
+                      onClick={() => setMarcasExtraVisibles(v => Math.min(v + 1, marcasDiaSiguiente.length))}
+                      title="Muestra una marcación adicional del día siguiente"
+                    >
+                      Ver siguiente marca
+                    </button>
+                  )}
                 </div>
                 
-                {todasLasMarcas.length === 0 ? (
+                {marcasVisibles.length === 0 ? (
                   <div className="text-center py-4 text-sm text-gray-500">No hay marcaciones registradas para este día.</div>
                 ) : (
                   <div className="flex flex-col gap-2">
@@ -523,20 +838,32 @@ function NewRequest() {
                       <span className="w-16 text-center text-green-600">Inicio</span>
                       <span className="w-16 text-center text-red-600">Fin</span>
                     </div>
-                    {todasLasMarcas.map((m, i) => {
+                    {marcasVisibles.map((m, i) => {
                       const isInicio = realInicio === m.hora && dispositivoInicio === m.dispositivo;
                       const isFin = realFin === m.hora && dispositivoFin === m.dispositivo;
 
                       return (
                         <div key={i} className={`flex items-center gap-3 bg-white rounded-xl px-4 py-2.5 border text-sm transition-colors
                           ${isInicio && isFin ? 'border-purple-300 bg-purple-50' : isInicio ? 'border-green-300 bg-green-50' : isFin ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                          <div className="flex items-center gap-3 flex-1">
-                            <span className="font-mono font-extrabold text-gray-700 min-w-[45px]">{m.hora}</span>
-                            <span className="text-gray-300">│</span>
-                            <span className="font-semibold text-xs text-gray-500 truncate flex items-center gap-1">
-                              {m.dispositivo === 'TRAKKER' ? <Satellite size={12} className="text-gray-400" /> : <Smartphone size={12} className="text-gray-400" />}
-                              {m.dispositivo}
-                            </span>
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="font-mono font-extrabold text-gray-700 min-w-[45px] flex items-center gap-1">
+                                {m.hora}
+                                {m.offsetDias === 1 && <span className="text-[10px] font-black text-gray-400">+1D</span>}
+                              </span>
+                              <span className="text-gray-300">│</span>
+                              <span className="font-semibold text-xs text-gray-500 truncate flex items-center gap-1 min-w-0">
+                                {m.dispositivo === 'TRAKKER' ? <Satellite size={12} className="text-gray-400" /> : <Smartphone size={12} className="text-gray-400" />}
+                                {m.dispositivo}
+                              </span>
+                            </div>
+                            {m.dispositivo === 'APP' && (m.cliente || m.otrosDatosReq || m.observacion) && (
+                              <div className="mt-1 text-[10px] leading-4 text-gray-500 min-w-0">
+                                {m.cliente && <span className="mr-3"><span className="font-bold">CLIENTE:</span> {m.cliente}</span>}
+                                {m.otrosDatosReq && <span className="mr-3"><span className="font-bold">OTROS DATOS (REQ):</span> {m.otrosDatosReq}</span>}
+                                {m.observacion && <span><span className="font-bold">OBSERVACIÓN:</span> {m.observacion}</span>}
+                              </div>
+                            )}
                           </div>
                           <div className="w-16 flex justify-center">
                             <input 
@@ -548,7 +875,7 @@ function NewRequest() {
                                 setRealInicio(m.hora);
                                 setDispositivoInicio(m.dispositivo);
                               }}
-                              disabled={esEdicion}
+                              disabled={esEdicion || m.offsetDias === 1}
                             />
                           </div>
                           <div className="w-16 flex justify-center">
@@ -560,6 +887,7 @@ function NewRequest() {
                               onChange={() => {
                                 setRealFin(m.hora);
                                 setDispositivoFin(m.dispositivo);
+                                setFinOffsetDias(m.offsetDias || 0);
                               }}
                               disabled={esEdicion}
                             />
@@ -585,7 +913,9 @@ function NewRequest() {
                     {previewCalculo.mins !== 0 && (
                       <div className="text-right">
                         <div className="text-[9px] text-gray-500 font-bold uppercase">Diferencia</div>
-                        <div className="text-xl font-extrabold" style={{ color: previewCalculo.color }}>{Math.abs(previewCalculo.mins)} min</div>
+                        <div className="text-xl font-extrabold" style={{ color: previewCalculo.color }}>
+                          {previewCalculo.mins > 0 ? `+${previewCalculo.mins}` : previewCalculo.mins} min
+                        </div>
                       </div>
                     )}
                   </div>

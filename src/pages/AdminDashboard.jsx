@@ -5,13 +5,64 @@ import Swal from 'sweetalert2'
 import { Search, UserPlus, Settings, Save, CheckCircle, X, ExternalLink, Pencil, KeyRound, Trash2, ShieldAlert } from 'lucide-react'
 import { logBitacora } from '../utils/bitacora'
 
+const LINEAS_DISPONIBLES = [
+  'CIL',
+  'CELSA',
+  'INSPECCION',
+  'NESTLE',
+  'CAD',
+  'CPEI',
+  'SERTEC',
+  'PPL LINDLEY',
+  'SPSA',
+  'BACKUS'
+]
+
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function normalizarTexto(value) {
+  if (!value) return ''
+  return value
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function obtenerLineaDesdeSeccion(seccionRaw) {
+  const seccion = normalizarTexto(seccionRaw)
+  if (!seccion) return ''
+
+  // Agrupar variantes (p.ej. "SPSA CORRECTIVO") bajo la línea "SPSA"
+  if (seccion.includes('SPSA')) return 'SPSA'
+  if (seccion.includes('LINDLEY')) return 'PPL LINDLEY'
+
+  for (const linea of LINEAS_DISPONIBLES) {
+    const lineaNorm = normalizarTexto(linea)
+
+    if (lineaNorm.includes(' ')) {
+      if (seccion.includes(lineaNorm)) return linea
+      continue
+    }
+
+    const re = new RegExp(`\\b${escapeRegExp(lineaNorm)}\\b`)
+    if (re.test(seccion)) return linea
+  }
+
+  return ''
+}
+
 function AdminDashboard() {
   const navigate = useNavigate()
   const [personal, setPersonal] = useState([])
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
-  const [filtroSeccion, setFiltroSeccion] = useState('')
-  const [listaSecciones, setListaSecciones] = useState([])
+  const [filtroLinea, setFiltroLinea] = useState('')
   const [fechaCorte, setFechaCorte] = useState('')
   const [fechaCorteOriginal, setFechaCorteOriginal] = useState('')
   const [guardandoConfig, setGuardandoConfig] = useState(false)
@@ -19,6 +70,9 @@ function AdminDashboard() {
 
   const PROJECT_URL = "https://pwzogtzcgcxiondlcfeo.supabase.co"
   const STORAGE_URL = `${PROJECT_URL}/storage/v1/object/public/fotos%20personal/`
+
+  const rolActual = sessionStorage.getItem('admin_rol') || 'admin'
+  const esSuperAdmin = rolActual === 'super_admin'
 
   useEffect(() => {
     const fetchPersonal = async () => {
@@ -33,7 +87,6 @@ function AdminDashboard() {
           nombre_horario: p.id_grupo_horario ? (horariosMap[p.id_grupo_horario] || 'N/A') : 'Sin Asignar'
         }))
         setPersonal(dataConHorario)
-        setListaSecciones([...new Set(data.map(p => p.seccion).filter(Boolean))].sort())
       }
       setLoading(false)
     }
@@ -49,11 +102,12 @@ function AdminDashboard() {
     const term = busqueda.toLowerCase()
     const nombreCompleto = `${p.nombres} ${p.apellidos}`.toLowerCase()
     const matchTexto = nombreCompleto.includes(term) || p.codigo.includes(term) || p.cargo.toLowerCase().includes(term)
-    const matchSeccion = filtroSeccion ? p.seccion === filtroSeccion : true
-    return matchTexto && matchSeccion
+    const linea = obtenerLineaDesdeSeccion(p.seccion)
+    const matchLinea = filtroLinea ? linea === filtroLinea : true
+    return matchTexto && matchLinea
   })
 
-  const limpiarFiltros = () => { setBusqueda(''); setFiltroSeccion('') }
+  const limpiarFiltros = () => { setBusqueda(''); setFiltroLinea('') }
 
   const guardarFechaCorte = async () => {
     if (!fechaCorte) return
@@ -122,6 +176,11 @@ function AdminDashboard() {
   };
 
   const handleCambiarPassword = async (p) => {
+    if (!esSuperAdmin) {
+      Swal.fire('Acceso restringido', 'Solo el Super Admin puede cambiar contraseñas de usuarios.', 'warning')
+      return
+    }
+
     const isVerified = await verificarAdminPassword();
     if (!isVerified) return;
 
@@ -181,6 +240,11 @@ function AdminDashboard() {
   };
 
   const handleEliminarUsuario = async (p) => {
+    if (!esSuperAdmin) {
+      Swal.fire('Acceso restringido', 'Solo el Super Admin puede eliminar usuarios.', 'warning')
+      return
+    }
+
     const isVerified = await verificarAdminPassword();
     if (!isVerified) return;
 
@@ -289,32 +353,34 @@ function AdminDashboard() {
               )}
             </div>
           </div>
-        </div>
+        </div>  
       )}
 
       {/* Filters */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        <div className="flex flex-col sm:flex-row gap-3 items-end">
-          <div className="flex flex-col gap-1 flex-[2] min-w-0">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="flex flex-col gap-1 flex-[2] min-w-0 w-full">
             <label className="text-[10px] font-bold text-corporate-blue uppercase tracking-wider">Buscar</label>
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input type="text" placeholder="Nombre, código o cargo..." value={busqueda} onChange={e => setBusqueda(e.target.value)} className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all" />
             </div>
           </div>
-          <div className="flex flex-col gap-1 flex-1 min-w-0">
-            <label className="text-[10px] font-bold text-corporate-blue uppercase tracking-wider">Sección</label>
-            <select value={filtroSeccion} onChange={e => setFiltroSeccion(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all">
-              <option value="">Todas</option>
-              {listaSecciones.map(s => <option key={s} value={s}>{s}</option>)}
+          <div className="flex flex-col gap-1 flex-1 min-w-0 w-full sm:max-w-64">
+            <label className="text-[10px] font-bold text-corporate-blue uppercase tracking-wider">Línea</label>
+            <select value={filtroLinea} onChange={e => setFiltroLinea(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all">
+              <option value="">Seleccionar...</option>
+              {LINEAS_DISPONIBLES.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
-          {(busqueda || filtroSeccion) && (
-            <button onClick={limpiarFiltros} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors border border-gray-200 cursor-pointer whitespace-nowrap">
-              <X size={14} /> Limpiar
-            </button>
-          )}
-          <span className="text-xs text-gray-400 whitespace-nowrap"><strong>{personalFiltrado.length}</strong> encontrados</span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
+            {(busqueda || filtroLinea) && (
+              <button onClick={limpiarFiltros} className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors border border-gray-200 cursor-pointer whitespace-nowrap w-full sm:w-auto">
+                <X size={14} /> Limpiar
+              </button>
+            )}
+            <span className="text-xs text-gray-400 whitespace-nowrap self-end sm:self-auto"><strong>{personalFiltrado.length}</strong> encontrados</span>
+          </div>
         </div>
       </div>
 
@@ -361,32 +427,38 @@ function AdminDashboard() {
                 </td>
                 <td className="py-3 px-4 text-center">
                   <div className="flex gap-2 justify-center">
-                    <button
-                      onClick={() => navigate(`/admin/editar-personal/${p.codigo}`)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
-                    >
-                      <Pencil size={12} /> Editar
-                    </button>
+                    {esSuperAdmin && (
+                      <button
+                        onClick={() => navigate(`/admin/editar-personal/${p.codigo}`)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
+                      >
+                        <Pencil size={12} /> Editar
+                      </button>
+                    )}
                     <button
                       onClick={() => navigate(`/admin/registros/${p.codigo}`)}
                       className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-50 text-gray-600 hover:bg-indigo-500 hover:text-white rounded-lg text-[11px] font-semibold transition-all border border-gray-200 hover:border-transparent cursor-pointer"
                     >
                       Registros <ExternalLink size={12} />
                     </button>
-                    <button
-                      onClick={() => handleCambiarPassword(p)}
-                      title="Cambiar Contraseña"
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
-                    >
-                      <KeyRound size={12} />
-                    </button>
-                    <button
-                      onClick={() => handleEliminarUsuario(p)}
-                      title="Eliminar Usuario"
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
-                    >
-                      <Trash2 size={12} />
-                    </button>
+                    {esSuperAdmin && (
+                      <button
+                        onClick={() => handleCambiarPassword(p)}
+                        title="Cambiar Contraseña"
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
+                      >
+                        <KeyRound size={12} />
+                      </button>
+                    )}
+                    {esSuperAdmin && (
+                      <button
+                        onClick={() => handleEliminarUsuario(p)}
+                        title="Eliminar Usuario"
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

@@ -12,6 +12,13 @@ function AdminAddPersonal() {
   const [fotoPreview, setFotoPreview] = useState(null)
   const [fechaCorteOnomastico, setFechaCorteOnomastico] = useState('2024-11-30'); const [grupoHorarioId, setGrupoHorarioId] = useState(''); const [gruposHorarios, setGruposHorarios] = useState([]);
 
+  const normalizarEmail = (value) => (value || '').trim().toLowerCase()
+  const esEmailValido = (value) => {
+    const v = normalizarEmail(value)
+    if (!v) return true
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+  }
+
   useEffect(() => {
     const cargarConfig = async () => {
       const { data } = await supabase.from('configuracion').select('valor').eq('clave', 'onomastico_fecha_corte').single()
@@ -27,6 +34,7 @@ function AdminAddPersonal() {
 
     const [codigo, setCodigo] = useState('')
     const [dni, setDni] = useState('')
+    const [email, setEmail] = useState('')
     const [nombres, setNombres] = useState('')
   const [apellidos, setApellidos] = useState('')
   const [cargo, setCargo] = useState('')
@@ -39,7 +47,7 @@ function AdminAddPersonal() {
 
   const seccionesDisponibles = [
     'CIL', 'CELSA', 'INSPECCION', 'NESTLE', 'CAD', 'CPEI',
-    'SERTEC', 'PPL LINDLEY', 'SPSA CORRECTIVO', 'BACKUS'
+    'SERTEC', 'PPL LINDLEY', 'SPSA', 'BACKUS'
   ]
 
   const cargosDisponibles = [
@@ -77,6 +85,10 @@ function AdminAddPersonal() {
       return Swal.fire('Campos requeridos', 'Código, DNI, Nombres y Apellidos son obligatorios', 'warning')
     }
 
+    if (!esEmailValido(email)) {
+      return Swal.fire('Email inválido', 'Ingresa un correo válido (ej: usuario@empresa.com)', 'warning')
+    }
+
     const { data: existe } = await supabase.from('personal').select('codigo').eq('codigo', codigo.trim()).single()
     if (existe) {
       return Swal.fire('Código duplicado', `El código ${codigo} ya está registrado en el sistema`, 'error')
@@ -93,7 +105,7 @@ function AdminAddPersonal() {
 
     if (fotoFile) {
       const ext = fotoFile.name.split('.').pop()
-      fotoNombre = `${codigo.trim()}.${ext}`
+      fotoNombre = `${codigo.trim()}_${Date.now()}.${ext}`
       const { error: uploadError } = await supabase.storage
         .from('fotos personal')
         .upload(fotoNombre, fotoFile, { upsert: true })
@@ -106,6 +118,7 @@ function AdminAddPersonal() {
     const payload = {
       codigo: codigo.trim(),
       dni: dni.trim(),
+      email: normalizarEmail(email) || null,
       nombres: nombres.trim().toUpperCase(),
       apellidos: apellidos.trim().toUpperCase(),
       cargo: cargo || null,
@@ -116,7 +129,17 @@ function AdminAddPersonal() {
       foto: fotoNombre, id_grupo_horario: grupoHorarioId || null
     }
 
-    const { error } = await supabase.from('personal').insert([payload])
+    let { error } = await supabase.from('personal').insert([payload])
+
+    // Compatibilidad: si aún no se ha agregado la columna email en BD.
+    if (error && /column\s+"?email"?\s+does not exist/i.test(error.message || '')) {
+      const { email: _omit, ...payloadSinEmail } = payload
+      const retry = await supabase.from('personal').insert([payloadSinEmail])
+      error = retry.error
+      if (!error) {
+        Swal.fire('Aviso', 'El campo Email aún no existe en la base de datos. Ejecuta el SQL de migración para guardar correos.', 'info')
+      }
+    }
     setEnviando(false)
 
     if (error) {
@@ -186,6 +209,16 @@ function AdminAddPersonal() {
               <label className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1 block">DNI *</label>
               <input type="text" placeholder="8 dígitos" value={dni} onChange={e => setDni(e.target.value)} maxLength={8} required
                 className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/20 transition-all" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1 block">Email</label>
+              <input
+                type="email"
+                placeholder="usuario@empresa.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/20 transition-all"
+              />
             </div>
             <div>
               <label className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-1 block">Nombres *</label>
