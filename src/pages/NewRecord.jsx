@@ -50,8 +50,7 @@ function NewRecord() {
 
   const opcionesTecnico = [
     "TRASLADO",
-    "SOBRETIEMPO",
-    "ONOMÁSTICO"
+    "SOBRETIEMPO"
   ]
 
   const opcionesActuales = useMemo(() => {
@@ -165,6 +164,11 @@ function NewRecord() {
     const cargarRegistro = async () => {
       const { data, error } = await supabase.from('nuevo_registro_horas').select('*').eq('nro_registro', nroRegistro).single()
       if (error || !data) { navigate(`/registros/${codigo}`); return }
+      if (data.tipo_solicitud === 'ONOMÁSTICO') {
+        Swal.fire('No disponible', 'El onomástico se registra desde Nueva Solicitud.', 'info')
+        navigate(`/nuevo-registro/${codigo}`)
+        return
+      }
       if (["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO"].includes(data.tipo_solicitud)) {
         setTipoCompensacion("COMPENSACIÓN A FAVOR DE CIPSA")
       } else {
@@ -498,18 +502,8 @@ function NewRecord() {
   const guardarRegistro = async (e) => {
     e.preventDefault()
     if (tipoSolicitud === "ONOMÁSTICO") {
-      if (!diaLibreOnomastico) return Swal.fire('Faltan datos', 'Selecciona el día libre', 'warning')
-      if (onomasticoInfo?.yaUsado && !esEdicion) return Swal.fire('Ya registrado', 'Ya tienes un onomástico registrado para este periodo', 'warning')
-      if (onomasticoInfo?.noCorresponde) return Swal.fire('No corresponde', 'Tu cumpleaños cae en día no laboral, no aplica el beneficio', 'warning')
-      if (!onomasticoInfo?.ventanaActiva && !esEdicion) return Swal.fire('Fuera de plazo', 'Solo puedes registrar onomástico durante el mes de tu cumpleaños', 'warning')
-      if (diaLibreEsLaboral === false) return Swal.fire('Día no laboral', 'Debes elegir un día que te toque trabajar', 'warning')
-      if (diaLibreOnomastico < onomasticoInfo.rangoInicio || diaLibreOnomastico > onomasticoInfo.rangoFin) return Swal.fire('Fuera de rango', 'El día debe estar dentro del mes de tu cumpleaños', 'warning')
-      setEnviando(true)
-      const payload = { nombre_empleado: trabajador ? `${trabajador.nombres} ${trabajador.apellidos}` : '', codigo_trabajador: codigo, area: trabajador?.area, cargo: trabajador?.cargo, tipo_solicitud: 'ONOMÁSTICO', requerimiento: 'N/A', motivo: `Día libre por onomástico - Cumpleaños: ${onomasticoInfo.cumpleTexto}`, lugar_trabajo: 'N/A', tipo_de_marcacion: 'N/A', fecha_hora_inicio: new Date(`${diaLibreOnomastico}T00:00:00`), fecha_hora_fin: new Date(`${diaLibreOnomastico}T23:59:59`), ingreso: new Date(`${diaLibreOnomastico}T00:00:00`), salida: new Date(`${diaLibreOnomastico}T23:59:59`), estado: 'Pendiente' }
-      const { error } = esEdicion ? await supabase.from('nuevo_registro_horas').update(payload).eq('nro_registro', nroRegistro) : await supabase.from('nuevo_registro_horas').insert([payload])
-      setEnviando(false)
-      if (error) Swal.fire('Error', error.message, 'error')
-      else { logBitacora({ usuario: codigo, tipo_usuario: 'empleado', accion: esEdicion ? 'editar' : 'crear', modulo: 'nuevo_registro_horas', descripcion: `${esEdicion ? 'Editó' : 'Creó'} solicitud ONOMÁSTICO`, registro_id: esEdicion ? String(nroRegistro) : null, datos_nuevos: { tipo_solicitud: 'ONOMÁSTICO', dia_libre: diaLibreOnomastico } }); Swal.fire({ title: '¡Registrado!', text: 'Solicitud de onomástico enviada', icon: 'success', timer: 1500, showConfirmButton: false }); navigate(`/registros/${codigo}`) }
+      Swal.fire('No disponible', 'El onomástico se registra desde Nueva Solicitud.', 'info')
+      navigate(`/nuevo-registro/${codigo}`)
       return
     }
     if (!fechaDia || !realInicio || !realFin) return Swal.fire('Faltan datos', 'Completa fecha y horas', 'warning')

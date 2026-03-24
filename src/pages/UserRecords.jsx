@@ -85,6 +85,23 @@ function UserRecords() {
     return { favor: minutosFavor, contra: minutosContra, neto: minutosFavor - minutosContra }
   }, [registros])
 
+  const resumenIdeal = useMemo(() => {
+    let minutosFavor = 0, minutosContra = 0
+    const tiposContra = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS"]
+    const tiposFavor = ["POR TRASLADO DE VIAJE", "POR TRASLADO DE EQUIPOS", "SOBRETIEMPO"]
+
+    registros.forEach(reg => {
+      if (!reg?.fecha_hora_inicio || !reg?.fecha_hora_fin) return
+
+      const minutos = (new Date(reg.fecha_hora_fin) - new Date(reg.fecha_hora_inicio)) / 60000
+
+      if (tiposFavor.includes(reg.tipo_solicitud)) minutosFavor += minutos
+      else if (tiposContra.includes(reg.tipo_solicitud)) minutosContra += minutos
+    })
+
+    return { favor: minutosFavor, contra: minutosContra, neto: minutosFavor - minutosContra }
+  }, [registros])
+
   const fmt = (minutos) => {
     const h = Math.floor(Math.abs(minutos) / 60), m = Math.round(Math.abs(minutos) % 60)
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
@@ -149,7 +166,7 @@ function UserRecords() {
       </div>
 
       {/* Balance cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 border-l-4 border-l-green-500">
           <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">A favor (+)</span>
           <div className="text-2xl md:text-3xl font-black text-green-700 mt-1">+{fmt(resumenHoras.favor)}</div>
@@ -162,6 +179,12 @@ function UserRecords() {
           <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">Saldo Total (=)</span>
           <div className={`text-2xl md:text-3xl font-black mt-1 ${resumenHoras.neto >= 0 ? 'text-blue-600' : 'text-red-700'}`}>
             {resumenHoras.neto >= 0 ? '+' : '-'}{fmt(resumenHoras.neto)}
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 border-l-4 border-l-corporate-blue">
+          <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">Saldo Ideal (si aprueban todo)</span>
+          <div className={`text-2xl md:text-3xl font-black mt-1 ${resumenIdeal.neto >= 0 ? 'text-blue-600' : 'text-red-700'}`}>
+            {resumenIdeal.neto >= 0 ? '+' : '-'}{fmt(resumenIdeal.neto)}
           </div>
         </div>
       </div>

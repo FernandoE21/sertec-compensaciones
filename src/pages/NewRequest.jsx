@@ -50,13 +50,13 @@ function NewRequest() {
 
   const opcionesTecnico = [
     "TRASLADO",
-    "SOBRETIEMPO",
-    "ONOMÁSTICO"
+    "SOBRETIEMPO"
   ]
 
   const opcionesActuales = useMemo(() => {
     if (tipoCompensacion === 'COMPENSACIÓN A FAVOR DE CIPSA') return opcionesCipsa
     if (tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO') return opcionesTecnico
+    if (tipoCompensacion === 'ONOMÁSTICO') return []
     return []
   }, [tipoCompensacion])
 
@@ -164,7 +164,9 @@ function NewRequest() {
     const cargarRegistro = async () => {
       const { data, error } = await supabase.from('registro_horas').select('*').eq('nro_registro', nroRegistro).single()
       if (error || !data) { navigate(`/registros/${codigo}`); return }
-      if (["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO"].includes(data.tipo_solicitud)) {
+      if (data.tipo_solicitud === 'ONOMÁSTICO') {
+        setTipoCompensacion('ONOMÁSTICO')
+      } else if (["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO"].includes(data.tipo_solicitud)) {
         setTipoCompensacion("COMPENSACIÓN A FAVOR DE CIPSA")
       } else {
         setTipoCompensacion("COMPENSACIÓN A FAVOR DEL TÉCNICO")
@@ -650,15 +652,21 @@ function NewRequest() {
                     ''
                   }`} 
                   value={tipoCompensacion} 
-                  onChange={(e) => { setTipoCompensacion(e.target.value); setTipoSolicitud(''); }} 
+                  onChange={(e) => { 
+                    const v = e.target.value
+                    setTipoCompensacion(v)
+                    setTipoSolicitud(v === 'ONOMÁSTICO' ? 'ONOMÁSTICO' : '')
+                  }} 
                   required 
                   disabled={esEdicion}
                 >
                   <option value="" className="bg-white text-gray-900">Seleccione...</option>
                   <option value="COMPENSACIÓN A FAVOR DE CIPSA" className="bg-white text-gray-900">FAVOR DE CIPSA (RESTAR)</option>
                   <option value="COMPENSACIÓN A FAVOR DEL TÉCNICO" className="bg-white text-gray-900">FAVOR DEL TÉCNICO (SUMAR)</option>
+                  <option value="ONOMÁSTICO" className="bg-white text-gray-900">ONOMÁSTICO (DÍA LIBRE)</option>
                 </select>
               </div>
+              {tipoCompensacion !== 'ONOMÁSTICO' && (
               <div>
                 <label className={labelCls}>Caso Específico</label>
                 <select 
@@ -688,6 +696,7 @@ function NewRequest() {
                   ))}
                 </select>
               </div>
+              )}
             </div>
           </div>
 
