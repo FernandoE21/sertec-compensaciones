@@ -45,7 +45,7 @@ function UserRecords() {
     }
 
     // Sort by fecha_hora_inicio descending, fallback to id descending
-    combined.sort((a, b) => new Date(b.fecha_hora_inicio).getTime() - new Date(a.fecha_hora_inicio).getTime() || b.id - a.id)
+    combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
     setRegistros(combined)
     setLoading(false)
@@ -69,7 +69,7 @@ function UserRecords() {
   // Balance
   const resumenHoras = useMemo(() => {
     let minutosFavor = 0, minutosContra = 0
-    const tiposContra = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS"]
+    const tiposContra = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS", "PERMISO PERSONAL"]
     const tiposFavor = ["POR TRASLADO DE VIAJE", "POR TRASLADO DE EQUIPOS", "SOBRETIEMPO"]
     
     registros.forEach(reg => {
@@ -87,7 +87,7 @@ function UserRecords() {
 
   const resumenIdeal = useMemo(() => {
     let minutosFavor = 0, minutosContra = 0
-    const tiposContra = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS"]
+    const tiposContra = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS", "PERMISO PERSONAL"]
     const tiposFavor = ["POR TRASLADO DE VIAJE", "POR TRASLADO DE EQUIPOS", "SOBRETIEMPO"]
 
     registros.forEach(reg => {
@@ -102,6 +102,14 @@ function UserRecords() {
     return { favor: minutosFavor, contra: minutosContra, neto: minutosFavor - minutosContra }
   }, [registros])
 
+  const getTipoCompensacionLabel = (tipo) => {
+    if (tipo === 'ONOMÁSTICO') return 'ONOMÁSTICO'
+    if (tipo === 'PERMISO PERSONAL') return 'DÍA A COMPENSAR'
+    if (["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO"].includes(tipo)) return 'FAVOR DE CIPSA'
+    if (["TRASLADO", "SOBRETIEMPO", "POR TRASLADO DE VIAJE", "POR TRASLADO DE EQUIPOS"].includes(tipo)) return 'FAVOR DEL TÉCNICO'
+    return 'OTRO'
+  }
+
   const fmt = (minutos) => {
     const h = Math.floor(Math.abs(minutos) / 60), m = Math.round(Math.abs(minutos) % 60)
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
@@ -110,7 +118,7 @@ function UserRecords() {
   const calcularHorasFila = (reg) => {
     const diffMins = (new Date(reg.fecha_hora_fin) - new Date(reg.fecha_hora_inicio)) / 60000
     const texto = fmt(diffMins)
-    const tiposContra = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS"]
+    const tiposContra = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS", "PERMISO PERSONAL"]
     const tiposFavor = ["POR TRASLADO DE VIAJE", "POR TRASLADO DE EQUIPOS", "SOBRETIEMPO"]
     
     if (tiposFavor.includes(reg.tipo_solicitud)) return <span className="inline-block bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-xs font-bold">+{texto}</span>
@@ -215,6 +223,12 @@ function UserRecords() {
         <div className="mt-2 text-xs text-gray-400">
           {desde && hasta ? <span>Mostrando del <b>{new Date(desde+'T00:00:00').toLocaleDateString()}</b> al <b>{new Date(hasta+'T00:00:00').toLocaleDateString()}</b></span> : <span>Historial completo · {registros.length} registros</span>}
         </div>
+        {(desde || hasta) && (
+          <div className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-600 font-medium">
+            <span className="mt-px leading-none">⚠</span>
+            <span>Los registros y el balance de horas corresponden únicamente al período de fechas seleccionado.</span>
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -245,12 +259,15 @@ function UserRecords() {
                   <td className="py-3 px-3 text-xs text-gray-400">{new Date(reg.created_at).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
                   <td className="py-3 px-3 text-xs text-gray-700">
                     <div className="flex flex-col gap-1 items-start">
-                      <span>{reg.tipo_solicitud}</span>
-                      {reg._origen === 'solicitud' ? (
-                        <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Solicitud</span>
-                      ) : (
-                        <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Registro</span>
-                      )}
+                      <span className="font-semibold">{reg.tipo_solicitud}</span>
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        <span className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold tracking-wider">{getTipoCompensacionLabel(reg.tipo_solicitud)}</span>
+                        {reg._origen === 'solicitud' ? (
+                          <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Solicitud</span>
+                        ) : (
+                          <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Registro</span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="py-3 px-3 text-center">{calcularHorasFila(reg)}</td>
@@ -367,6 +384,26 @@ function UserRecords() {
                   <span className="font-bold">Creado:</span> {new Date(registroDetalle.created_at).toLocaleString()}
                 </div>
               </div>
+
+              {/* Ubicación GPS */}
+              {registroDetalle.latitud && registroDetalle.longitud && (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[10px] font-extrabold text-corporate-blue uppercase tracking-wider mb-1">Ubicación GPS (Marca APP)</div>
+                    <div className="text-xs text-gray-600">
+                      Lat: <span className="font-mono font-bold">{registroDetalle.latitud}</span> · Lng: <span className="font-mono font-bold">{registroDetalle.longitud}</span>
+                    </div>
+                  </div>
+                  <a
+                    href={`https://maps.google.com/?q=${registroDetalle.latitud},${registroDetalle.longitud}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl border-none cursor-pointer transition-colors whitespace-nowrap"
+                  >
+                    📍 Ver en Maps
+                  </a>
+                </div>
+              )}
 
               {/* Acciones */}
               {registroDetalle.estado === 'Pendiente' && (

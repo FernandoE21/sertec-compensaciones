@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import Swal from 'sweetalert2'
-import { ShieldCheck, UserPlus, Eye, EyeOff, Pencil, Trash2, Save, X, Crown } from 'lucide-react'
+import { ShieldCheck, UserPlus, Eye, EyeOff, Pencil, Trash2, Save, X, Crown, Network } from 'lucide-react'
 import { logBitacora } from '../utils/bitacora'
 
 function AdminAdministradores() {
@@ -9,7 +9,9 @@ function AdminAdministradores() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null)
-  const [form, setForm] = useState({ usuario: '', password: '', nombre_completo: '', rol: 'admin' })
+  const [form, setForm] = useState({ usuario: '', password: '', nombre_completo: '', rol: 'admin', lineas_asignadas: [] })
+
+  const LINEAS_DISPONIBLES = ['CIL','CELSA','INSPECCION','NESTLE','CAD','CPEI','SERTEC','PPL LINDLEY','SPSA','BACKUS']
   const [showPasswords, setShowPasswords] = useState({})
   const [guardando, setGuardando] = useState(false)
 
@@ -31,7 +33,7 @@ function AdminAdministradores() {
   }
 
   const resetForm = () => {
-    setForm({ usuario: '', password: '', nombre_completo: '', rol: 'admin' })
+    setForm({ usuario: '', password: '', nombre_completo: '', rol: 'admin', lineas_asignadas: [] })
     setEditId(null)
     setShowForm(false)
   }
@@ -60,6 +62,7 @@ function AdminAdministradores() {
       // Update
       const updateData = { usuario: form.usuario, nombre_completo: form.nombre_completo, rol: form.rol, updated_at: new Date().toISOString() }
       if (form.password) updateData.password = form.password
+      if (form.rol === 'supervisor') updateData.lineas_asignadas = form.lineas_asignadas
 
       const { error } = await supabase.from('administradores').update(updateData).eq('id', editId)
       if (error) {
@@ -98,6 +101,7 @@ function AdminAdministradores() {
         password: form.password,
         nombre_completo: form.nombre_completo,
         rol: form.rol,
+        lineas_asignadas: form.rol === 'supervisor' ? form.lineas_asignadas : [],
       })
       if (error) {
         Swal.fire('Error', error.message, 'error')
@@ -122,7 +126,7 @@ function AdminAdministradores() {
       Swal.fire('Acceso restringido', 'Solo el Super Admin puede editar administradores.', 'warning')
       return
     }
-    setForm({ usuario: admin.usuario, password: '', nombre_completo: admin.nombre_completo, rol: admin.rol })
+    setForm({ usuario: admin.usuario, password: '', nombre_completo: admin.nombre_completo, rol: admin.rol, lineas_asignadas: admin.lineas_asignadas || [] })
     setEditId(admin.id)
     setShowForm(true)
   }
@@ -209,9 +213,10 @@ function AdminAdministradores() {
   const rolBadge = {
     super_admin: 'bg-amber-100 text-amber-700',
     admin: 'bg-blue-100 text-blue-700',
+    supervisor: 'bg-violet-100 text-violet-700',
     viewer: 'bg-gray-100 text-gray-600',
   }
-  const rolLabel = { super_admin: 'Super Admin', admin: 'Admin', viewer: 'Solo Lectura' }
+  const rolLabel = { super_admin: 'Super Admin', admin: 'Admin', supervisor: 'Supervisor', viewer: 'Solo Lectura' }
 
   return (
     <div className="space-y-5">
@@ -241,7 +246,7 @@ function AdminAdministradores() {
       {/* Roles info */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Roles Disponibles</h3>
-        <div className="grid sm:grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-4 gap-3">
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
             <div className="flex items-center gap-2 mb-1">
               <Crown size={14} className="text-amber-600" />
@@ -256,6 +261,13 @@ function AdminAdministradores() {
             </div>
             <p className="text-[11px] text-blue-600">Gestiona personal, aprueba solicitudes y ve actividad.</p>
           </div>
+          <div className="bg-violet-50 border border-violet-200 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Network size={14} className="text-violet-600" />
+              <span className="text-xs font-bold text-violet-700">Supervisor</span>
+            </div>
+            <p className="text-[11px] text-violet-600">Ve y aprueba registros de sus líneas asignadas. Puede editar registros.</p>
+          </div>
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
             <div className="flex items-center gap-2 mb-1">
               <Eye size={14} className="text-gray-500" />
@@ -269,7 +281,7 @@ function AdminAdministradores() {
       {/* Form Modal */}
       {showForm && esSuperAdmin && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={resetForm}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-in" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-in" onClick={(e) => e.stopPropagation()}>
             <div className="bg-corporate-blue rounded-t-2xl p-6 text-center">
               <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-3">
                 {editId ? <ShieldCheck size={28} className="text-corporate-green" /> : <UserPlus size={28} className="text-corporate-green" />}
@@ -321,14 +333,49 @@ function AdminAdministradores() {
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Rol</label>
                 <select
                   value={form.rol}
-                  onChange={e => setForm({ ...form, rol: e.target.value })}
+                  onChange={e => setForm({ ...form, rol: e.target.value, lineas_asignadas: [] })}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all text-center font-bold text-corporate-blue"
                 >
                   {esSuperAdmin && <option value="super_admin">Super Admin</option>}
                   <option value="admin">Admin</option>
+                  <option value="supervisor">Supervisor</option>
                   <option value="viewer">Solo Lectura</option>
                 </select>
               </div>
+
+              {form.rol === 'supervisor' && (
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-2">Líneas Asignadas</label>
+                  <div className="grid grid-cols-2 gap-1.5 max-h-44 overflow-y-auto p-2 border border-gray-200 rounded-xl bg-gray-50">
+                    {LINEAS_DISPONIBLES.map(linea => (
+                      <label key={linea} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer text-xs font-semibold transition-colors ${
+                        form.lineas_asignadas.includes(linea)
+                          ? 'bg-violet-100 text-violet-700 border border-violet-300'
+                          : 'bg-white text-gray-600 border border-gray-200 hover:border-violet-300'
+                      }`}>
+                        <input
+                          type="checkbox"
+                          className="w-3.5 h-3.5 accent-violet-600 cursor-pointer"
+                          checked={form.lineas_asignadas.includes(linea)}
+                          onChange={() => {
+                            const prev = form.lineas_asignadas
+                            setForm({
+                              ...form,
+                              lineas_asignadas: prev.includes(linea)
+                                ? prev.filter(l => l !== linea)
+                                : [...prev, linea]
+                            })
+                          }}
+                        />
+                        {linea}
+                      </label>
+                    ))}
+                  </div>
+                  {form.lineas_asignadas.length === 0 && (
+                    <p className="text-[11px] text-amber-600 mt-1.5">Selecciona al menos una línea</p>
+                  )}
+                </div>
+              )}
 
               <div className="pt-2 flex flex-col gap-2">
                 <button type="submit" disabled={guardando} className="w-full py-3 bg-corporate-blue hover:bg-corporate-blue/90 text-white font-bold text-sm rounded-xl border-none cursor-pointer transition-colors disabled:opacity-50">
@@ -368,9 +415,16 @@ function AdminAdministradores() {
                 </td>
                 <td className="py-3 px-4 text-gray-600">{admin.nombre_completo}</td>
                 <td className="py-3 px-4 text-center">
-                  <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase ${rolBadge[admin.rol]}`}>
-                    {rolLabel[admin.rol]}
+                  <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase ${rolBadge[admin.rol] || 'bg-gray-100 text-gray-600'}`}>
+                    {rolLabel[admin.rol] || admin.rol}
                   </span>
+                  {admin.rol === 'supervisor' && admin.lineas_asignadas && admin.lineas_asignadas.length > 0 && (
+                    <div className="flex flex-wrap gap-1 justify-center mt-1">
+                      {admin.lineas_asignadas.map(l => (
+                        <span key={l} className="text-[9px] bg-violet-50 text-violet-600 border border-violet-200 px-1.5 py-0.5 rounded font-bold">{l}</span>
+                      ))}
+                    </div>
+                  )}
                 </td>
                 <td className="py-3 px-4 text-center">
                   <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${admin.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>

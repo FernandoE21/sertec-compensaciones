@@ -73,6 +73,10 @@ function AdminDashboard() {
 
   const rolActual = sessionStorage.getItem('admin_rol') || 'admin'
   const esSuperAdmin = rolActual === 'super_admin'
+  const esSupervisor = rolActual === 'supervisor'
+  const lineasSupervisor = esSupervisor
+    ? (JSON.parse(sessionStorage.getItem('admin_lineas') || '[]'))
+    : []
 
   useEffect(() => {
     const fetchPersonal = async () => {
@@ -104,7 +108,8 @@ function AdminDashboard() {
     const matchTexto = nombreCompleto.includes(term) || p.codigo.includes(term) || p.cargo.toLowerCase().includes(term)
     const linea = obtenerLineaDesdeSeccion(p.seccion)
     const matchLinea = filtroLinea ? linea === filtroLinea : true
-    return matchTexto && matchLinea
+    const matchSupervisor = esSupervisor ? lineasSupervisor.includes(linea) : true
+    return matchTexto && matchLinea && matchSupervisor
   })
 
   const limpiarFiltros = () => { setBusqueda(''); setFiltroLinea('') }

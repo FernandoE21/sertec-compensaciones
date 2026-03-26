@@ -50,7 +50,7 @@ function AdminUserRecords() {
       combined = combined.filter(d => new Date(d.fecha_hora_inicio).getTime() <= hastaDate)
     }
 
-    combined.sort((a, b) => new Date(b.fecha_hora_inicio).getTime() - new Date(a.fecha_hora_inicio).getTime() || new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
     setRegistros(combined)
     setLoading(false)
@@ -326,7 +326,7 @@ function AdminUserRecords() {
 
   const resumenHoras = useMemo(() => {
     let minutosFavor = 0, minutosContra = 0
-    const tiposContra = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS"]
+    const tiposContra = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS", "PERMISO PERSONAL"]
     const tiposFavor = ["POR TRASLADO DE VIAJE", "POR TRASLADO DE EQUIPOS", "SOBRETIEMPO"]
     registros.forEach(reg => {
       // Misma regla que en vista usuario:
@@ -341,6 +341,27 @@ function AdminUserRecords() {
     return { favor: minutosFavor, contra: minutosContra, neto: minutosFavor - minutosContra }
   }, [registros])
 
+  const resumenIdeal = useMemo(() => {
+    let minutosFavor = 0, minutosContra = 0
+    const tiposContra = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS", "PERMISO PERSONAL"]
+    const tiposFavor = ["POR TRASLADO DE VIAJE", "POR TRASLADO DE EQUIPOS", "SOBRETIEMPO"]
+    registros.forEach(reg => {
+      if (!reg?.fecha_hora_inicio || !reg?.fecha_hora_fin) return
+      const minutos = (new Date(reg.fecha_hora_fin) - new Date(reg.fecha_hora_inicio)) / 60000
+      if (tiposFavor.includes(reg.tipo_solicitud)) minutosFavor += minutos
+      else if (tiposContra.includes(reg.tipo_solicitud)) minutosContra += minutos
+    })
+    return { favor: minutosFavor, contra: minutosContra, neto: minutosFavor - minutosContra }
+  }, [registros])
+
+  const getTipoCompensacionLabel = (tipo) => {
+    if (tipo === 'ONOMÁSTICO') return 'ONOMÁSTICO'
+    if (tipo === 'PERMISO PERSONAL') return 'DÍA A COMPENSAR'
+    if (["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO"].includes(tipo)) return 'FAVOR DE CIPSA'
+    if (["TRASLADO", "SOBRETIEMPO", "POR TRASLADO DE VIAJE", "POR TRASLADO DE EQUIPOS"].includes(tipo)) return 'FAVOR DEL TÉCNICO'
+    return 'OTRO'
+  }
+
   const fmt = (minutos) => {
     const h = Math.floor(Math.abs(minutos) / 60), m = Math.round(Math.abs(minutos) % 60)
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
@@ -349,7 +370,7 @@ function AdminUserRecords() {
   const calcularHorasFila = (reg) => {
     const diffMins = (new Date(reg.fecha_hora_fin) - new Date(reg.fecha_hora_inicio)) / 60000
     const texto = fmt(diffMins)
-    const tiposContra = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS"]
+    const tiposContra = ["POR SALIDA ANTES DE HORARIO", "POR INGRESO FUERA DE HORARIO", "COMPENSAR HORAS", "PERMISO PERSONAL"]
     const tiposFavor = ["POR TRASLADO DE VIAJE", "POR TRASLADO DE EQUIPOS", "SOBRETIEMPO"]
 
     if (tiposFavor.includes(reg.tipo_solicitud)) return <span className="inline-block bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-xs font-bold">+{texto}</span>
@@ -411,7 +432,7 @@ function AdminUserRecords() {
       </div>
 
       {/* Balance */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 border-l-4 border-l-green-500">
           <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">A favor (+)</span>
           <div className="text-2xl md:text-3xl font-black text-green-700 mt-1">+{fmt(resumenHoras.favor)}</div>
@@ -423,6 +444,12 @@ function AdminUserRecords() {
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 border-l-4 border-l-blue-500">
           <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">Saldo Total (=)</span>
           <div className={`text-2xl md:text-3xl font-black mt-1 ${resumenHoras.neto >= 0 ? 'text-blue-600' : 'text-red-700'}`}>{resumenHoras.neto >= 0 ? '+' : '-'}{fmt(resumenHoras.neto)}</div>
+        </div>
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 border-l-4 border-l-corporate-blue">
+          <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">Saldo Ideal (si aprueban todo)</span>
+          <div className={`text-2xl md:text-3xl font-black mt-1 ${resumenIdeal.neto >= 0 ? 'text-blue-600' : 'text-red-700'}`}>
+            {resumenIdeal.neto >= 0 ? '+' : '-'}{fmt(resumenIdeal.neto)}
+          </div>
         </div>
       </div>
 
@@ -452,6 +479,12 @@ function AdminUserRecords() {
         <div className="mt-2 text-xs text-gray-400">
           {desde && hasta ? <span>Mostrando del <b>{new Date(desde + 'T00:00:00').toLocaleDateString()}</b> al <b>{new Date(hasta + 'T00:00:00').toLocaleDateString()}</b></span> : <span>Historial completo · {registros.length} registros</span>}
         </div>
+        {(desde || hasta) && (
+          <div className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-600 font-medium">
+            <span className="mt-px leading-none">⚠</span>
+            <span>Los registros y el balance de horas corresponden únicamente al período de fechas seleccionado.</span>
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -482,12 +515,15 @@ function AdminUserRecords() {
                   <td className="py-3 px-3 text-xs text-gray-400">{new Date(reg.created_at).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
                   <td className="py-3 px-3 text-xs text-gray-700">
                     <div className="flex flex-col gap-1 items-start">
-                      <span>{reg.tipo_solicitud}</span>
-                      {reg._origen === 'solicitud' ? (
-                        <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Solicitud</span>
-                      ) : (
-                        <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Registro</span>
-                      )}
+                      <span className="font-semibold">{reg.tipo_solicitud}</span>
+                      <div className="flex flex-wrap gap-1 mt-0.5">
+                        <span className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold tracking-wider">{getTipoCompensacionLabel(reg.tipo_solicitud)}</span>
+                        {reg._origen === 'solicitud' ? (
+                          <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Solicitud</span>
+                        ) : (
+                          <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Registro</span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="py-3 px-3 text-center">{calcularHorasFila(reg)}</td>
@@ -516,9 +552,9 @@ function AdminUserRecords() {
                         <>
                           <button
                             type="button"
-                            disabled
-                            title="Solo el usuario puede editar"
-                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-50 text-amber-600 transition-colors border-none opacity-40 cursor-not-allowed"
+                            onClick={() => navigate(reg._origen === 'registro' ? `/admin/editar-nuevo-registro/${codigo}/${reg.nro_registro}` : `/admin/editar-registro/${codigo}/${reg.nro_registro}`)}
+                            title="Editar registro"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors border-none cursor-pointer"
                           >
                             <Pencil size={14} />
                           </button>
@@ -698,6 +734,26 @@ function AdminUserRecords() {
                   <span className="font-bold">Creado:</span> {new Date(registroDetalle.created_at).toLocaleString()}
                 </div>
               </div>
+
+              {/* Ubicación GPS */}
+              {registroDetalle.latitud && registroDetalle.longitud && (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[10px] font-extrabold text-corporate-blue uppercase tracking-wider mb-1">Ubicación GPS (Marca APP)</div>
+                    <div className="text-xs text-gray-600">
+                      Lat: <span className="font-mono font-bold">{registroDetalle.latitud}</span> · Lng: <span className="font-mono font-bold">{registroDetalle.longitud}</span>
+                    </div>
+                  </div>
+                  <a
+                    href={`https://maps.google.com/?q=${registroDetalle.latitud},${registroDetalle.longitud}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl border-none cursor-pointer transition-colors whitespace-nowrap"
+                  >
+                    📍 Ver en Maps
+                  </a>
+                </div>
+              )}
 
               {/* Footer */}
               <div className="flex justify-end border-t border-gray-200 pt-4">

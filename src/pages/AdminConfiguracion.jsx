@@ -16,6 +16,8 @@ function AdminConfiguracion() {
   const [cambiandoPass, setCambiandoPass] = useState(false)
 
   const adminUsuario = sessionStorage.getItem('admin_usuario') || 'admin'
+  const rolActual = sessionStorage.getItem('admin_rol') || 'admin'
+  const esSupervisor = rolActual === 'supervisor'
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -108,34 +110,41 @@ function AdminConfiguracion() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-5">
-        {/* Onomástico Config */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 mb-4">
-            <Settings size={18} className="text-corporate-blue" />
-            <h3 className="text-base font-bold text-gray-800">Fecha de Corte — Onomástico</h3>
-          </div>
-          <div className="bg-gray-50 rounded-xl border border-gray-200 p-4">
-            <p className="text-xs text-gray-500 mb-3">Solo el personal con fecha de ingreso <strong>igual o anterior</strong> a esta fecha será elegible para el onomástico.</p>
-            <div className="flex flex-col gap-3">
-              <input
-                type="date"
-                value={fechaCorte}
-                onChange={e => setFechaCorte(e.target.value)}
-                style={{ colorScheme: 'light' }}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-medium bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all"
-              />
-              {fechaCorte !== fechaCorteOriginal ? (
-                <button onClick={guardarFechaCorte} disabled={guardandoConfig} className="flex items-center justify-center gap-1.5 bg-corporate-green text-white px-4 py-2.5 rounded-xl text-xs font-bold border-none cursor-pointer hover:brightness-95 transition-all w-full">
-                  <Save size={14} /> {guardandoConfig ? 'Guardando...' : 'Guardar Cambios'}
-                </button>
-              ) : fechaCorte && (
-                <span className="flex items-center gap-1 text-xs text-green-600 font-bold justify-center">
-                  <CheckCircle size={14} /> Vigente: {new Date(fechaCorte + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </span>
-              )}
+        {/* Onomástico Config — solo para admin/super_admin */}
+        {!esSupervisor ? (
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-2 mb-4">
+              <Settings size={18} className="text-corporate-blue" />
+              <h3 className="text-base font-bold text-gray-800">Fecha de Corte — Onomástico</h3>
+            </div>
+            <div className="bg-gray-50 rounded-xl border border-gray-200 p-4">
+              <p className="text-xs text-gray-500 mb-3">Solo el personal con fecha de ingreso <strong>igual o anterior</strong> a esta fecha será elegible para el onomástico.</p>
+              <div className="flex flex-col gap-3">
+                <input
+                  type="date"
+                  value={fechaCorte}
+                  onChange={e => setFechaCorte(e.target.value)}
+                  style={{ colorScheme: 'light' }}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-medium bg-white focus:outline-none focus:border-corporate-green focus:ring-2 focus:ring-corporate-green/10 transition-all"
+                />
+                {fechaCorte !== fechaCorteOriginal ? (
+                  <button onClick={guardarFechaCorte} disabled={guardandoConfig} className="flex items-center justify-center gap-1.5 bg-corporate-green text-white px-4 py-2.5 rounded-xl text-xs font-bold border-none cursor-pointer hover:brightness-95 transition-all w-full">
+                    <Save size={14} /> {guardandoConfig ? 'Guardando...' : 'Guardar Cambios'}
+                  </button>
+                ) : fechaCorte && (
+                  <span className="flex items-center gap-1 text-xs text-green-600 font-bold justify-center">
+                    <CheckCircle size={14} /> Vigente: {new Date(fechaCorte + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-violet-50 border border-violet-200 rounded-2xl p-5 flex items-center gap-3">
+            <Settings size={20} className="text-violet-400 shrink-0" />
+            <p className="text-sm text-violet-600 font-medium">Como <strong>Supervisor</strong>, solo puedes cambiar tu contraseña. La configuración del sistema está reservada para administradores.</p>
+          </div>
+        )}
 
         {/* Change Password */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">

@@ -31,7 +31,7 @@ function UserLayout() {
     <div className="min-h-screen bg-bg-soft">
       <Toaster position="top-center" toastOptions={{ duration: 3000, style: { borderRadius: '12px', fontSize: '14px', fontWeight: '500' } }} />
       {codigoSesion && <UserSidebar codigo={codigoSesion} />}
-      <main className="md:ml-56 pt-4 pb-6 px-4 md:px-6 max-w-6xl md:mx-auto">
+      <main className="md:ml-56 pt-4 pb-6 px-4 flex-1 md:px-8 max-w-7xl md:mx-auto w-full">
         {autorizado ? <Outlet /> : null}
       </main>
     </div>

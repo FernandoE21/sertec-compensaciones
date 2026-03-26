@@ -67,13 +67,20 @@ function AdminSidebar() {
     })
   }
 
-  const links = [
+  const rolActual = sessionStorage.getItem('admin_rol') || 'admin'
+  const esSupervisor = rolActual === 'supervisor'
+
+  const allLinks = [
     { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
     { label: 'Directorio', icon: Users, path: '/admin-panel' },
-    { label: 'Nuevo Personal', icon: UserPlus, path: '/admin/nuevo-personal' },    { label: 'Horarios', icon: Clock, path: '/admin/horarios' },    { label: 'Actividad', icon: ScrollText, path: '/admin/bitacora' },
-    { label: 'Administradores', icon: ShieldCheck, path: '/admin/administradores' },
+    { label: 'Nuevo Personal', icon: UserPlus, path: '/admin/nuevo-personal' },
+    { label: 'Horarios', icon: Clock, path: '/admin/horarios' },
+    { label: 'Actividad', icon: ScrollText, path: '/admin/bitacora' },
+    { label: 'Administradores', icon: ShieldCheck, path: '/admin/administradores', soloAdmin: true },
     { label: 'Configuración', icon: Settings, path: '/admin/configuracion' },
   ]
+
+  const links = allLinks.filter(l => !l.soloAdmin || !esSupervisor)
 
   const handleNavigate = (path) => {
     navigate(path)
@@ -141,7 +148,7 @@ function AdminSidebar() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-white truncate">{adminData.nombre_completo.split(' ')[0]} {adminData.nombre_completo.split(' ').length > 1 ? adminData.nombre_completo.split(' ')[1] : ''}</p>
-                <p className="text-[10px] text-white/50 truncate uppercase tracking-wider">{adminData.rol === 'super_admin' ? 'Super Admin' : adminData.rol === 'viewer' ? 'Solo Lectura' : 'Admin'}</p>
+                <p className="text-[10px] text-white/50 truncate uppercase tracking-wider">{adminData.rol === 'super_admin' ? 'Super Admin' : adminData.rol === 'supervisor' ? 'Supervisor' : adminData.rol === 'viewer' ? 'Solo Lectura' : 'Admin'}</p>
               </div>
             </div>
           )}

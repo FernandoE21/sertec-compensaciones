@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Menu, X, ClipboardList, PlusCircle, LogOut, Headset, Phone, Mail, KeyRound, Lock, UserCircle } from 'lucide-react'
+import { Menu, X, ClipboardList, PlusCircle, LogOut, Headset, Phone, Mail, KeyRound, Lock, UserCircle, Info } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import Swal from 'sweetalert2'
 import { logBitacora } from '../utils/bitacora'
@@ -14,6 +14,7 @@ function UserSidebar({ codigo }) {
   const [passConfirmar, setPassConfirmar] = useState('')
   const [cambiandoPass, setCambiandoPass] = useState(false)
   const [userData, setUserData] = useState(null)
+  const [tooltipAbierto, setTooltipAbierto] = useState(null)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -236,9 +237,27 @@ function UserSidebar({ codigo }) {
   }
 
   const links = [
-    { label: 'Mis Registros Integrados', icon: ClipboardList, path: `/registros/${codigo}` },
-    { label: 'Nueva Solicitud', icon: PlusCircle, path: `/nuevo-registro/${codigo}` },
-    { label: 'Nuevo Registro', icon: PlusCircle, path: `/crear-registro/${codigo}` },
+    { label: 'Panel General', icon: ClipboardList, path: `/registros/${codigo}`, info: null },
+    {
+      label: 'Nuevo Registro',
+      icon: PlusCircle,
+      path: `/crear-registro/${codigo}`,
+      info: {
+        titulo: '¿Qué es un Registro?',
+        descripcion: 'Registra horas en tu contra (horas déficit). Úsalo cuando saliste antes de tu horario, llegaste tarde o necesitas compensar tiempo no trabajado.',
+        color: 'emerald',
+      }
+    },
+    {
+      label: 'Nueva Solicitud',
+      icon: PlusCircle,
+      path: `/nuevo-registro/${codigo}`,
+      info: {
+        titulo: '¿Qué es una Solicitud?',
+        descripcion: 'Solicita el uso de tus horas a favor (sobretiempos, traslados, etc.), pide autorizar una ausencia o salida anticipada que luego compensarás, o solicita tu día libre por onomástico. Queda pendiente de aprobación.',
+        color: 'purple',
+      }
+    },
   ]
 
   const handleNavigate = (path) => {
@@ -322,25 +341,46 @@ function UserSidebar({ codigo }) {
             const isActive = location.pathname === link.path ||
               (link.path.includes('/registros/') && location.pathname.includes('/registros/') && !location.pathname.includes('/admin'))
             return (
-              <button
-                key={link.label}
-                onClick={() => handleNavigate(link.path)}
-                className={`flex items-start gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border-none cursor-pointer ${
-                  isActive
-                    ? 'bg-corporate-green text-white shadow-md'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white bg-transparent'
-                }`}
-              >
-                <link.icon size={18} />
-                {link.label === 'Mis Registros Integrados' ? (
-                  <span className="flex flex-col leading-tight text-left">
-                    <span>Mis Registros</span>
-                    <span>Integrados</span>
-                  </span>
-                ) : (
-                  <span className="leading-tight text-left">{link.label}</span>
+              <div key={link.label} className="relative">
+                <div className={`flex items-center gap-2 rounded-xl transition-all ${
+                  isActive ? 'bg-corporate-green shadow-md' : 'hover:bg-white/10'
+                }`}>
+                  <button
+                    onClick={() => handleNavigate(link.path)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border-none cursor-pointer flex-1 ${
+                      isActive ? 'text-white bg-transparent' : 'text-white/70 hover:text-white bg-transparent'
+                    }`}
+                  >
+                    <link.icon size={18} />
+                    <span className="leading-tight text-left">{link.label}</span>
+                  </button>
+                  {link.info && (
+                    <div className="relative pr-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setTooltipAbierto(tooltipAbierto === link.label ? null : link.label) }}
+                        className="w-6 h-6 flex items-center justify-center rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-colors border-none bg-transparent cursor-pointer"
+                        title="Saber más"
+                      >
+                        <Info size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {link.info && tooltipAbierto === link.label && (
+                  <div className="absolute left-full top-0 ml-2 z-50 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 p-4 animate-slide-in" onClick={(e) => e.stopPropagation()}>
+                    <button onClick={() => setTooltipAbierto(null)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0.5"><X size={14} /></button>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${
+                      link.info.color === 'emerald' ? 'bg-emerald-100' : 'bg-purple-100'
+                    }`}>
+                      <Info size={16} className={link.info.color === 'emerald' ? 'text-emerald-600' : 'text-purple-600'} />
+                    </div>
+                    <p className={`text-xs font-bold mb-1 ${
+                      link.info.color === 'emerald' ? 'text-emerald-700' : 'text-purple-700'
+                    }`}>{link.info.titulo}</p>
+                    <p className="text-[11px] text-gray-500 leading-relaxed">{link.info.descripcion}</p>
+                  </div>
                 )}
-              </button>
+              </div>
             )
           })}
         </nav>
@@ -396,18 +436,41 @@ function UserSidebar({ codigo }) {
                 const isActive = location.pathname === link.path ||
                   (link.path.includes('/registros/') && location.pathname.includes('/registros/') && !location.pathname.includes('/admin'))
                 return (
-                  <button
-                    key={link.label}
-                    onClick={() => handleNavigate(link.path)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border-none cursor-pointer ${
-                      isActive
-                        ? 'bg-corporate-green text-white'
-                        : 'text-white/70 hover:bg-white/10 hover:text-white bg-transparent'
-                    }`}
-                  >
-                    <link.icon size={18} />
-                    {link.label}
-                  </button>
+                  <div key={link.label}>
+                    <div className={`flex items-center rounded-xl transition-all ${
+                      isActive ? 'bg-corporate-green shadow-md' : 'hover:bg-white/10'
+                    }`}>
+                      <button
+                        onClick={() => handleNavigate(link.path)}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border-none cursor-pointer flex-1 ${
+                          isActive ? 'text-white bg-transparent' : 'text-white/70 hover:text-white bg-transparent'
+                        }`}
+                      >
+                        <link.icon size={18} />
+                        {link.label}
+                      </button>
+                      {link.info && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setTooltipAbierto(tooltipAbierto === `m-${link.label}` ? null : `m-${link.label}`) }}
+                          className="w-8 h-8 mr-2 flex items-center justify-center rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-colors border-none bg-transparent cursor-pointer"
+                        >
+                          <Info size={14} />
+                        </button>
+                      )}
+                    </div>
+                    {link.info && tooltipAbierto === `m-${link.label}` && (
+                      <div className={`mx-3 mt-1 mb-2 p-3 rounded-xl border ${
+                        link.info.color === 'emerald'
+                          ? 'bg-emerald-50 border-emerald-200'
+                          : 'bg-purple-50 border-purple-200'
+                      }`}>
+                        <p className={`text-xs font-bold mb-1 ${
+                          link.info.color === 'emerald' ? 'text-emerald-700' : 'text-purple-700'
+                        }`}>{link.info.titulo}</p>
+                        <p className="text-[11px] text-gray-600 leading-relaxed">{link.info.descripcion}</p>
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </nav>

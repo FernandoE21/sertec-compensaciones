@@ -77,10 +77,13 @@ async function syncMarcacionesGPS() {
         id_usuario,
         observacion,
         cliente,
-        otr_referencia
+        otr_referencia,
+        latitud,
+        longitud
       FROM usuario_gps
       WHERE flg_anulado = 0
         AND fec_marca IS NOT NULL
+        AND fec_marca >= DATEADD(day, -7, GETDATE())
       ORDER BY fec_marca DESC
     `);
 
@@ -106,7 +109,9 @@ async function syncMarcacionesGPS() {
         fecha_marca: row.fec_marca,
         observacion: row.observacion || null,
         cliente: row.cliente ? row.cliente.trim() : null,
-        otr_referencia: row.otr_referencia || null
+        otr_referencia: row.otr_referencia || null,
+        latitud: row.latitud || null,
+        longitud: row.longitud || null,
       });
     }
 

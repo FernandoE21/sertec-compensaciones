@@ -96,22 +96,23 @@ function NewRecord() {
   // UI locks by solicitud type
   useEffect(() => {
     if (!cargandoDatos) {
-      switch (tipoSolicitud) {
+      if (tipoCompensacion === 'COMPENSACIÓN A FAVOR DE CIPSA') {
+        setLugarTrabajo("N/A"); setConfigUI({ lugarDisabled: true, lugarOpciones: ["N/A"], reqDisabled: true });
+      } else {
+        switch (tipoSolicitud) {
           case "TRASLADO":
             setLugarTrabajo("N/A"); setConfigUI({ lugarDisabled: true, lugarOpciones: ["N/A"], reqDisabled: false }); break
           case "SOBRETIEMPO":
             setLugarTrabajo(""); setConfigUI({ lugarDisabled: false, lugarOpciones: ["SERTEC", "CLIENTE"], reqDisabled: false }); break
-        case "POR SALIDA ANTES DE HORARIO":
-        case "POR INGRESO FUERA DE HORARIO":
-          setLugarTrabajo("N/A"); setConfigUI({ lugarDisabled: true, lugarOpciones: ["N/A"], reqDisabled: false }); break
-        case "ONOMÁSTICO":
-          setLugarTrabajo("N/A"); setRequerimiento("N/A"); setTipoMarcacion("N/A")
-          setConfigUI({ lugarDisabled: true, lugarOpciones: ["N/A"], reqDisabled: true }); break
-        default:
-          setConfigUI({ lugarDisabled: false, lugarOpciones: [], reqDisabled: false }); break
+          case "ONOMÁSTICO":
+            setLugarTrabajo("N/A"); setRequerimiento("N/A"); setTipoMarcacion("N/A")
+            setConfigUI({ lugarDisabled: true, lugarOpciones: ["N/A"], reqDisabled: true }); break
+          default:
+            setConfigUI({ lugarDisabled: false, lugarOpciones: [], reqDisabled: false }); break
+        }
       }
     }
-  }, [tipoSolicitud])
+  }, [tipoSolicitud, tipoCompensacion, cargandoDatos])
 
   // Onomástico logic
   useEffect(() => {
@@ -237,19 +238,35 @@ function NewRecord() {
       try {
         let marcas = []
         // Trakker
-        const { data: d1, error: e1 } = await supabase.from('marcaciones').select('hora_ingreso, hora_salida').eq('codigo_trabajador', codigo).eq('fecha', fechaDia).single()
-        if (d1 && !e1) {
-          if (d1.hora_ingreso) marcas.push({ hora: d1.hora_ingreso.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 0 })
-          if (d1.hora_salida && d1.hora_salida !== d1.hora_ingreso) marcas.push({ hora: d1.hora_salida.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 0 })
+        const { data: dNew, error: eNew } = await supabase
+          .from('marcaciones_individuales')
+          .select('hora')
+          .eq('codigo_trabajador', codigo)
+          .eq('fecha', fechaDia)
+          .eq('tipo', 'TRAKKER')
+          .order('hora', { ascending: true })
+
+        if (dNew && dNew.length > 0) {
+          dNew.forEach(m => {
+            marcas.push({ hora: m.hora.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 0 })
+          })
           setMarcaCargada(true)
         } else {
-          setMarcaCargada(false)
+          // Fallback histórico a tabla antigua (antes de 21-ene-2026)
+          const { data: d1, error: e1 } = await supabase.from('marcaciones').select('hora_ingreso, hora_salida').eq('codigo_trabajador', codigo).eq('fecha', fechaDia).single()
+          if (d1 && !e1) {
+            if (d1.hora_ingreso) marcas.push({ hora: d1.hora_ingreso.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 0 })
+            if (d1.hora_salida && d1.hora_salida !== d1.hora_ingreso) marcas.push({ hora: d1.hora_salida.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 0 })
+            setMarcaCargada(true)
+          } else {
+            setMarcaCargada(false)
+          }
         }
 
         // GPS (APP)
         const { data: d2, error: e2 } = await supabase
           .from('marcaciones_gps')
-          .select('id_marca, fecha_marca, cliente, otr_referencia, observacion')
+          .select('id_marca, fecha_marca, cliente, otr_referencia, observacion, latitud, longitud')
           .eq('codigo_trabajador', codigo)
           .gte('fecha_marca', `${fechaDia}T00:00:00`)
           .lte('fecha_marca', `${fechaDia}T23:59:59`)
@@ -264,6 +281,8 @@ function NewRecord() {
               cliente: m.cliente,
               otrosDatosReq: m.otr_referencia,
               observacion: m.observacion,
+              lat: m.latitud ?? null,
+              lng: m.longitud ?? null,
             })
           })
         }
@@ -278,15 +297,29 @@ function NewRecord() {
           const fechaSiguiente = addDaysISO(fechaDia, 1)
           let marcasNext = []
 
-          const { data: nd1, error: ne1 } = await supabase.from('marcaciones').select('hora_ingreso, hora_salida').eq('codigo_trabajador', codigo).eq('fecha', fechaSiguiente).single()
-          if (nd1 && !ne1) {
-            if (nd1.hora_ingreso) marcasNext.push({ hora: nd1.hora_ingreso.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 1 })
-            if (nd1.hora_salida && nd1.hora_salida !== nd1.hora_ingreso) marcasNext.push({ hora: nd1.hora_salida.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 1 })
+          const { data: ndNew } = await supabase
+            .from('marcaciones_individuales')
+            .select('hora')
+            .eq('codigo_trabajador', codigo)
+            .eq('fecha', fechaSiguiente)
+            .eq('tipo', 'TRAKKER')
+            .order('hora', { ascending: true })
+
+          if (ndNew && ndNew.length > 0) {
+            ndNew.forEach(m => {
+              marcasNext.push({ hora: m.hora.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 1 })
+            })
+          } else {
+            const { data: nd1, error: ne1 } = await supabase.from('marcaciones').select('hora_ingreso, hora_salida').eq('codigo_trabajador', codigo).eq('fecha', fechaSiguiente).single()
+            if (nd1 && !ne1) {
+              if (nd1.hora_ingreso) marcasNext.push({ hora: nd1.hora_ingreso.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 1 })
+              if (nd1.hora_salida && nd1.hora_salida !== nd1.hora_ingreso) marcasNext.push({ hora: nd1.hora_salida.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 1 })
+            }
           }
 
           const { data: nd2, error: ne2 } = await supabase
             .from('marcaciones_gps')
-            .select('id_marca, fecha_marca, cliente, otr_referencia, observacion')
+            .select('id_marca, fecha_marca, cliente, otr_referencia, observacion, latitud, longitud')
             .eq('codigo_trabajador', codigo)
             .gte('fecha_marca', `${fechaSiguiente}T00:00:00`)
             .lte('fecha_marca', `${fechaSiguiente}T23:59:59`)
@@ -475,10 +508,10 @@ function NewRecord() {
       }
     }
 
-    if (diffMins > 0 && diffMins <= 60) {
+    if (diffMins > 0 && diffMins < 30) {
       return {
-        texto: 'MÍNIMO 1 HORA',
-        subtexto: 'Si el registro es a favor, debe ser mayor a 1 hora.',
+        texto: 'MÍNIMO 30 MINUTOS',
+        subtexto: 'Si el registro es a favor, debe ser de al menos 30 minutos.',
         color: '#b45309', bg: 'bg-amber-50', icon: AlertTriangle, border: 'border-amber-400',
         mins: diffMins,
         invalido: true,
@@ -640,7 +673,7 @@ function NewRecord() {
               <div>
                 <label className={labelCls}>Tipo de Solicitud</label>
                 <select 
-                  className={`${inputCls} font-medium ${esEdicion ? disabledCls : ''} ${
+                  className={`${inputCls} font-medium ${
                     tipoCompensacion === 'COMPENSACIÓN A FAVOR DE CIPSA' ? '!text-red-700 !bg-red-50 !border-red-300' : 
                     tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO' ? '!text-emerald-700 !bg-emerald-50 !border-emerald-300' : 
                     ''
@@ -648,17 +681,15 @@ function NewRecord() {
                   value={tipoCompensacion} 
                   onChange={(e) => { setTipoCompensacion(e.target.value); setTipoSolicitud(''); }} 
                   required 
-                  disabled={esEdicion}
                 >
                   <option value="" className="bg-white text-gray-900">Seleccione...</option>
                   <option value="COMPENSACIÓN A FAVOR DE CIPSA" className="bg-white text-gray-900">FAVOR DE CIPSA (RESTAR)</option>
-                  <option value="COMPENSACIÓN A FAVOR DEL TÉCNICO" className="bg-white text-gray-900">FAVOR DEL TÉCNICO (SUMAR)</option>
                 </select>
               </div>
               <div>
                 <label className={labelCls}>Caso Específico</label>
                 <select 
-                  className={`${inputCls} font-medium ${esEdicion ? disabledCls : ''} ${
+                  className={`${inputCls} font-medium ${
                     tipoCompensacion === 'COMPENSACIÓN A FAVOR DE CIPSA' ? '!text-red-700 !bg-red-50 !border-red-300' :
                     tipoCompensacion === 'COMPENSACIÓN A FAVOR DEL TÉCNICO' ? '!text-emerald-700 !bg-emerald-50 !border-emerald-300' :
                     ''
@@ -666,7 +697,7 @@ function NewRecord() {
                   value={tipoSolicitud} 
                   onChange={(e) => setTipoSolicitud(e.target.value)} 
                   required 
-                  disabled={esEdicion || !tipoCompensacion}
+                  disabled={!tipoCompensacion}
                 >
                   <option value="" className="bg-white text-gray-900">Seleccione el caso...</option>
                   {opcionesActuales.map(op => (
@@ -853,11 +884,22 @@ function NewRecord() {
                                 {m.dispositivo}
                               </span>
                             </div>
-                            {m.dispositivo === 'APP' && (m.cliente || m.otrosDatosReq || m.observacion) && (
+                            {m.dispositivo === 'APP' && (m.cliente || m.otrosDatosReq || m.observacion || (m.lat && m.lng)) && (
                               <div className="mt-1 text-[10px] leading-4 text-gray-500 min-w-0">
                                 {m.cliente && <span className="mr-3"><span className="font-bold">CLIENTE:</span> {m.cliente}</span>}
                                 {m.otrosDatosReq && <span className="mr-3"><span className="font-bold">OTROS DATOS (REQ):</span> {m.otrosDatosReq}</span>}
-                                {m.observacion && <span><span className="font-bold">OBSERVACIÓN:</span> {m.observacion}</span>}
+                                {m.observacion && <span className="mr-3"><span className="font-bold">OBSERVACIÓN:</span> {m.observacion}</span>}
+                                {m.lat && m.lng && (
+                                  <a
+                                    href={`https://maps.google.com/?q=${m.lat},${m.lng}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 underline underline-offset-2"
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    📍 Ver ubicación
+                                  </a>
+                                )}
                               </div>
                             )}
                           </div>
@@ -871,7 +913,7 @@ function NewRecord() {
                                 setRealInicio(m.hora);
                                 setDispositivoInicio(m.dispositivo);
                               }}
-                              disabled={esEdicion || m.offsetDias === 1}
+                              disabled={m.offsetDias === 1}
                             />
                           </div>
                           <div className="w-16 flex justify-center">
@@ -885,7 +927,7 @@ function NewRecord() {
                                 setDispositivoFin(m.dispositivo);
                                 setFinOffsetDias(m.offsetDias || 0);
                               }}
-                              disabled={esEdicion}
+                              disabled={false}
                             />
                           </div>
                         </div>

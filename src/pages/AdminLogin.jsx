@@ -17,7 +17,7 @@ function AdminLogin() {
 
     try {
       // Try DB-based auth first (via RPC or direct query)
-      const { data } = await supabase.from('administradores').select('id, usuario, nombre_completo, rol').eq('usuario', usuario).eq('password', password).eq('activo', true).single()
+      const { data } = await supabase.from('administradores').select('id, usuario, nombre_completo, rol, lineas_asignadas').eq('usuario', usuario).eq('password', password).eq('activo', true).single()
 
       if (data) {
         // Store session
@@ -25,6 +25,7 @@ function AdminLogin() {
         sessionStorage.setItem('admin_nombre', data.nombre_completo)
         sessionStorage.setItem('admin_rol', data.rol)
         sessionStorage.setItem('admin_id', String(data.id))
+        sessionStorage.setItem('admin_lineas', JSON.stringify(data.lineas_asignadas || []))
 
         await logBitacora({
           usuario: data.usuario,

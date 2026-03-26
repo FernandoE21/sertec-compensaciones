@@ -48,6 +48,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/admin/administradores" element={<AdminAdministradores />} />
           <Route path="/admin/configuracion" element={<AdminConfiguracion />} />
           <Route path="/admin/horarios" element={<AdminHorarios />} />
+          {/* Admin edit routes - reuse same form components */}
+          <Route path="/admin/editar-registro/:codigo/:nroRegistro" element={<NewRequest />} />
+          <Route path="/admin/editar-nuevo-registro/:codigo/:nroRegistro" element={<NewRecord />} />
         </Route>
       </Routes>
     </BrowserRouter>
