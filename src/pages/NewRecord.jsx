@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import Swal from 'sweetalert2'
-import { X, Satellite, Smartphone, Cake, AlertTriangle, Ban, CalendarCheck, Scale, TrendingUp, TrendingDown, Clock } from 'lucide-react'
+import { X, Satellite, Smartphone, Cake, AlertTriangle, Ban, CalendarCheck, Scale, TrendingUp, TrendingDown, Clock, MapPin } from 'lucide-react'
 import { logBitacora } from '../utils/bitacora'
 
 function NewRecord() {
@@ -103,7 +103,7 @@ function NewRecord() {
           case "TRASLADO":
             setLugarTrabajo("N/A"); setConfigUI({ lugarDisabled: true, lugarOpciones: ["N/A"], reqDisabled: false }); break
           case "SOBRETIEMPO":
-            setLugarTrabajo(""); setConfigUI({ lugarDisabled: false, lugarOpciones: ["SERTEC", "CLIENTE"], reqDisabled: false }); break
+            setLugarTrabajo(""); setConfigUI({ lugarDisabled: false, lugarOpciones: ["SERTEC", "CLIENTE", "FUERA DE OFICINA"], reqDisabled: false }); break
           case "ONOMÁSTICO":
             setLugarTrabajo("N/A"); setRequerimiento("N/A"); setTipoMarcacion("N/A")
             setConfigUI({ lugarDisabled: true, lugarOpciones: ["N/A"], reqDisabled: true }); break
@@ -348,7 +348,7 @@ function NewRecord() {
             }
           })
           const unicasSiguiente = Array.from(unicasNextMap.values()).sort((a, b) => a.offsetDias - b.offsetDias || a.hora.localeCompare(b.hora))
-          setTodasLasMarcasSiguienteDia(unicasSiguiente)
+          setMarcasDiaSiguiente(unicasSiguiente)
         } else {
           setMarcasDiaSiguiente([])
           setMarcasExtraVisibles(0)
@@ -743,7 +743,7 @@ function NewRecord() {
                 <div>
                   <label className={labelCls}>Lugar de Trabajo</label>
                   <select className={`${inputCls} ${configUI.lugarDisabled ? disabledCls : ''}`} value={lugarTrabajo} onChange={(e) => setLugarTrabajo(e.target.value)} required disabled={configUI.lugarDisabled && configUI.lugarOpciones.length === 1}>
-                    {configUI.lugarOpciones.length > 0 ? configUI.lugarOpciones.map(op => <option key={op} value={op}>{op}</option>) : <><option value="">Elegir...</option><option value="SERTEC">SERTEC</option><option value="CLIENTE">CLIENTE</option></>}
+                    {configUI.lugarOpciones.length > 0 ? configUI.lugarOpciones.map(op => <option key={op} value={op}>{op}</option>) : <><option value="">Elegir...</option><option value="SERTEC">SERTEC</option><option value="CLIENTE">CLIENTE</option><option value="FUERA DE OFICINA">FUERA DE OFICINA</option></>}
                   </select>
                 </div>
                 
@@ -872,6 +872,7 @@ function NewRecord() {
                       <span className="flex-1">Hora / Disp.</span>
                       <span className="w-16 text-center text-green-600">Inicio</span>
                       <span className="w-16 text-center text-red-600">Fin</span>
+                      <span className="w-8"></span>
                     </div>
                     {marcasVisibles.map((m, i) => {
                       const isInicio = realInicio === m.hora && dispositivoInicio === m.dispositivo;
@@ -897,17 +898,6 @@ function NewRecord() {
                                 {m.cliente && <span className="mr-3"><span className="font-bold">CLIENTE:</span> {m.cliente}</span>}
                                 {m.otrosDatosReq && <span className="mr-3"><span className="font-bold">OTROS DATOS (REQ):</span> {m.otrosDatosReq}</span>}
                                 {m.observacion && <span className="mr-3"><span className="font-bold">OBSERVACIÓN:</span> {m.observacion}</span>}
-                                {m.lat && m.lng && (
-                                  <a
-                                    href={`https://maps.google.com/?q=${m.lat},${m.lng}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 underline underline-offset-2"
-                                    onClick={e => e.stopPropagation()}
-                                  >
-                                    📍 Ver ubicación
-                                  </a>
-                                )}
                               </div>
                             )}
                           </div>
@@ -937,6 +927,20 @@ function NewRecord() {
                               }}
                               disabled={false}
                             />
+                          </div>
+                          <div className="w-8 flex justify-center">
+                            {m.lat && m.lng && (
+                              <a
+                                href={`https://maps.google.com/?q=${m.lat},${m.lng}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-500 hover:text-blue-700 transition-colors bg-blue-50 p-1.5 rounded-full hover:bg-blue-100"
+                                onClick={e => e.stopPropagation()}
+                                title="Ver ubicación exacta"
+                              >
+                                <MapPin size={16} strokeWidth={2.5} />
+                              </a>
+                            )}
                           </div>
                         </div>
                       )

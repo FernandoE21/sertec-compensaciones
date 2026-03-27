@@ -1,0 +1,146 @@
+Buscando en marcaciones_gps (Supabase) hoooy...
+[
+  {
+    "id_marca": 1002044282,
+    "codigo_trabajador": "01002044",
+    "fecha_marca": "2026-03-26T20:00:57.507+00:00",
+    "observacion": "INICIO SOBRETIEMPO",
+    "cliente": "CIPSA",
+    "otr_referencia": "SISTEMA DE COMPENSACIONES",
+    "created_at": "2026-03-27T01:10:05.09574+00:00",
+    "latitud": null,
+    "longitud": null
+  },
+  {
+    "id_marca": 100233579,
+    "codigo_trabajador": "01002335",
+    "fecha_marca": "2026-03-26T18:41:24.663+00:00",
+    "observacion": "ENTRADA",
+    "cliente": "ARCA CONTINENTAL LINDLEY",
+    "otr_referencia": null,
+    "created_at": "2026-03-26T23:50:04.877751+00:00",
+    "latitud": null,
+    "longitud": null
+  },
+  {
+    "id_marca": 10020801659,
+    "codigo_trabajador": "01002080",
+    "fecha_marca": "2026-03-26T18:14:17.06+00:00",
+    "observacion": "SALIDA",
+    "cliente": null,
+    "otr_referencia": null,
+    "created_at": "2026-03-26T23:20:05.319993+00:00",
+    "latitud": null,
+    "longitud": null
+  },
+  {
+    "id_marca": 1002044281,
+    "codigo_trabajador": "01002044",
+    "fecha_marca": "2026-03-26T18:12:54.54+00:00",
+    "observacion": "FIN DE ACTIVIDADES",
+    "cliente": "CIPSA",
+    "otr_referencia": "2026001530",
+    "created_at": "2026-03-26T23:20:05.319993+00:00",
+    "latitud": null,
+    "longitud": null
+  },
+  {
+    "id_marca": 1001826880,
+    "codigo_trabajador": "01001826",
+    "fecha_marca": "2026-03-26T18:05:27.96+00:00",
+    "observacion": "SALIDA",
+    "cliente": "machupicchu foods",
+    "otr_referencia": null,
+    "created_at": "2026-03-26T23:10:06.241276+00:00",
+    "latitud": null,
+    "longitud": null
+  },
+  {
+    "id_marca": 1002389155,
+    "codigo_trabajador": "01002389",
+    "fecha_marca": "2026-03-26T18:03:16.74+00:00",
+    "observacion": "SALIDA",
+    "cliente": "SPSA",
+    "otr_referencia": "Fin de actividades.",
+    "created_at": "2026-03-26T23:10:06.241276+00:00",
+    "latitud": null,
+    "longitud": null
+  },
+  {
+    "id_marca": 1002346371,
+    "codigo_trabajador": "01002346",
+    "fecha_marca": "2026-03-26T18:02:13.673+00:00",
+    "observacion": "SALIDA",
+    "cliente": null,
+    "otr_referencia": null,
+    "created_at": "2026-03-26T23:10:06.241276+00:00",
+    "latitud": null,
+    "longitud": null
+  },
+  {
+    "id_marca": 1002163248,
+    "codigo_trabajador": "01002163",
+    "fecha_marca": "2026-03-26T17:19:42.437+00:00",
+    "observacion": "SALIDA",
+    "cliente": "NESTLÉ",
+    "otr_referencia": "visita semanal ",
+    "created_at": "2026-03-26T22:20:04.688556+00:00",
+    "latitud": null,
+    "longitud": null
+  },
+  {
+    "id_marca": 10015781780,
+    "codigo_trabajador": "01001578",
+    "fecha_marca": "2026-03-26T15:40:00.447+00:00",
+    "observacion": "SALIDA",
+    "cliente": "GLORIA SA",
+    "otr_referencia": null,
+    "created_at": "2026-03-26T20:50:04.62809+00:00",
+    "latitud": -12.00702427,
+    "longitud": -76.91070597
+  },
+  {
+    "id_marca": 10017471320,
+    "codigo_trabajador": "01001747",
+    "fecha_marca": "2026-03-26T15:28:52.937+00:00",
+    "observacion": "ENTRADA",
+    "cliente": "OSLO",
+    "otr_referencia": "2026001560",
+    "created_at": "2026-03-26T20:30:13.481446+00:00",
+    "latitud": -12.2110962,
+    "longitud": -76.9673665
+  }
+]
+\nSQL Server (usuario_gps)...
+[
+  {
+    "fec_marca": "2026-03-26T20:00:57.507Z",
+    "latitud": "-12.03197848",
+    "longitud": "-77.01684754",
+    "id_usuario": "010101002044"
+  },
+  {
+    "fec_marca": "2026-03-26T19:58:31.453Z",
+    "latitud": "-11.9981246",
+    "longitud": "-77.0785142",
+    "id_usuario": "010101001315"
+  },
+  {
+    "fec_marca": "2026-03-26T19:48:29.630Z",
+    "latitud": "-12.0232512",
+    "longitud": "-77.098972",
+    "id_usuario": "0101ABERRIOS"
+  },
+  {
+    "fec_marca": "2026-03-26T19:33:24.510Z",
+    "latitud": "-11.983310815227146",
+    "longitud": "-76.93891377260309",
+    "id_usuario": "010101001523"
+  },
+  {
+    "fec_marca": "2026-03-26T19:16:08.923Z",
+    "latitud": "-12.0464271",
+    "longitud": "-76.9434534",
+    "id_usuario": "0101WQUISPE"
+  }
+]

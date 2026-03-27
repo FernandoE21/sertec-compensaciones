@@ -347,12 +347,12 @@ function UserSidebar({ codigo }) {
                 }`}>
                   <button
                     onClick={() => handleNavigate(link.path)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border-none cursor-pointer flex-1 ${
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border-none cursor-pointer flex-1 whitespace-nowrap ${
                       isActive ? 'text-white bg-transparent' : 'text-white/70 hover:text-white bg-transparent'
                     }`}
                   >
-                    <link.icon size={18} />
-                    <span className="leading-tight text-left">{link.label}</span>
+                    <link.icon size={18} className="shrink-0" />
+                    <span className="leading-tight text-left truncate">{link.label}</span>
                   </button>
                   {link.info && (
                     <div className="relative pr-2">
@@ -442,12 +442,12 @@ function UserSidebar({ codigo }) {
                     }`}>
                       <button
                         onClick={() => handleNavigate(link.path)}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border-none cursor-pointer flex-1 ${
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border-none cursor-pointer flex-1 text-left whitespace-nowrap ${
                           isActive ? 'text-white bg-transparent' : 'text-white/70 hover:text-white bg-transparent'
                         }`}
                       >
-                        <link.icon size={18} />
-                        {link.label}
+                        <link.icon size={18} className="shrink-0" />
+                        <span className="truncate">{link.label}</span>
                       </button>
                       {link.info && (
                         <button
