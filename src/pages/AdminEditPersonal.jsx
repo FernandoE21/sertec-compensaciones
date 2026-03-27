@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient'
 import Swal from 'sweetalert2'
 import { Pencil, X, Trash2, Camera, IdCard, Wrench, ClipboardList, CalendarDays, CheckCircle, Clock, Download, Loader2 } from 'lucide-react'
 import { logBitacora } from '../utils/bitacora'
+import { obtenerLineaDesdeSeccion } from '../utils/lineas'
 
 function AdminEditPersonal() {
   const navigate = useNavigate()
@@ -63,8 +64,14 @@ function AdminEditPersonal() {
 
   useEffect(() => {
     const rolActual = sessionStorage.getItem('admin_rol') || 'admin'
-    if (rolActual !== 'super_admin') {
-      Swal.fire('Acceso restringido', 'Solo el Super Admin puede editar usuarios.', 'warning')
+    const esSupervisor = rolActual === 'supervisor'
+    const esSuperAdmin = rolActual === 'super_admin'
+    const lineasSupervisor = esSupervisor
+      ? (JSON.parse(sessionStorage.getItem('admin_lineas') || '[]'))
+      : []
+
+    if (!esSuperAdmin && !esSupervisor) {
+      Swal.fire('Acceso restringido', 'No tienes permisos para editar usuarios.', 'warning')
       navigate('/admin-panel')
       return
     }
@@ -82,6 +89,16 @@ function AdminEditPersonal() {
         Swal.fire('Error', 'No se encontró el colaborador', 'error')
         navigate('/admin-panel')
         return
+      }
+
+      // Validación de Seguridad para Supervisor
+      if (esSupervisor) {
+        const lineaTrabajador = obtenerLineaDesdeSeccion(data.seccion)
+        if (!lineasSupervisor.includes(lineaTrabajador)) {
+          Swal.fire('Acceso Denegado', 'No tienes permisos para editar personal de esta línea.', 'error')
+          navigate('/admin-panel')
+          return
+        }
       }
 
       setCodigo(data.codigo || '')
@@ -110,7 +127,7 @@ function AdminEditPersonal() {
       const { data: horarios } = await supabase.from('grupos_horarios').select('*').order('id'); if (horarios) setGruposHorarios(horarios); setCargando(false)
     }
     cargarDatos()
-  }, [codigoParam])
+  }, [codigoParam, navigate])
 
   const handleFotoChange = (e) => {
     const file = e.target.files[0]

@@ -26,13 +26,11 @@ const SUPABASE_URL = 'https://pwzogtzcgcxiondlcfeo.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_oCt_y46aZ4iTg81CTKb3YQ_tLG_K-aA';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ─── Extraer código de trabajador (últimos 8 dígitos) ────────────────
-function extraerCodigo(id) {
-  if (!id) return null;
-  const cleaned = String(id).trim();
-  // Extraer los últimos 8 caracteres (ej: 010101000473 -> 01000473 o 0101JAMAYA -> 0101JAMAYA)
-  // Luego el filtro de codigosValidos se encargará de validar si es un técnico real.
-  return cleaned.length >= 8 ? cleaned.slice(-8) : cleaned;
+// ─── Extraer código 0100XXXX del id_usuario ────────────────────────
+function extraerCodigo(idUsuario) {
+  if (!idUsuario) return null;
+  const match = String(idUsuario).match(/0100\d{4}/);
+  return match ? match[0] : null;
 }
 
 // ─── Sincronización principal ──────────────────────────────────────
@@ -40,7 +38,7 @@ async function syncMarcacionesGPS() {
   let pool;
   try {
     console.log('═══════════════════════════════════════════════');
-    console.log('  SYNC MARCACIONES GPS → SUPABASE (CON MAPEO)');
+    console.log('  SYNC MARCACIONES GPS → SUPABASE');
     console.log('═══════════════════════════════════════════════\n');
 
     // 1. Obtener códigos de empleados registrados en Supabase
@@ -59,8 +57,7 @@ async function syncMarcacionesGPS() {
     pool = await sql.connect(sqlConfig);
     console.log('   → Conectado\n');
 
-    // 3. Obtener último id_marca sincronizado (para sync incremental - opcional ahora que usamos -7d)
-    // (Mantenemos la lógica de obtener el último para referencia, aunque el query filtra por fecha)
+    // 3. Obtener último id_marca sincronizado (para sync incremental)
     const { data: ultimoSync } = await supabase
       .from('marcaciones_gps')
       .select('id_marca')
@@ -69,30 +66,28 @@ async function syncMarcacionesGPS() {
       .single();
 
     const ultimoIdMarca = ultimoSync?.id_marca || 0;
-    console.log(`📌 Último id_marca sincronizado (ref): ${ultimoIdMarca}\n`);
+    console.log(`📌 Último id_marca sincronizado: ${ultimoIdMarca}\n`);
 
-    // 4. Consultar usuario_gps en SQL Server CON JOIN A USUARIO
-    console.log('🔍 Consultando usuario_gps + mapping en SQL Server...');
+    // 4. Consultar usuario_gps en SQL Server
+    console.log('🔍 Consultando usuario_gps en SQL Server...');
     const result = await pool.request().query(`
       SELECT 
-        CAST(g.id_marca AS VARCHAR(50)) as id_marca,
-        g.fec_marca,
-        g.id_usuario,
-        COALESCE(u.id_trabajador, g.id_usuario) as worker_id_source,
-        g.observacion,
-        g.cliente,
-        g.otr_referencia,
-        g.latitud,
-        g.longitud
-      FROM usuario_gps g
-      LEFT JOIN Usuario u ON g.id_usuario = u.id_usuario
-      WHERE g.flg_anulado = 0
-        AND g.fec_marca IS NOT NULL
-        AND g.fec_marca >= DATEADD(day, -7, GETDATE())
-      ORDER BY g.fec_marca DESC
+        CAST(id_marca AS VARCHAR(50)) as id_marca,
+        fec_marca,
+        id_usuario,
+        observacion,
+        cliente,
+        otr_referencia,
+        latitud,
+        longitud
+      FROM usuario_gps
+      WHERE flg_anulado = 0
+        AND fec_marca IS NOT NULL
+        AND fec_marca >= DATEADD(day, -7, GETDATE())
+      ORDER BY fec_marca DESC
     `);
 
-    console.log(`   → ${result.recordset.length} registros recientes obtenidos\n`);
+    console.log(`   → ${result.recordset.length} registros nuevos encontrados\n`);
 
     if (result.recordset.length === 0) {
       console.log('✅ No hay registros nuevos para sincronizar.');
@@ -100,19 +95,13 @@ async function syncMarcacionesGPS() {
     }
 
     // 5. Filtrar y transformar registros
-    console.log('🔄 Procesando mapeo de identidades...');
+    console.log('🔄 Filtrando registros con código 0100XXXX...');
     const registros = [];
 
     for (const row of result.recordset) {
-      const codigo = extraerCodigo(row.worker_id_source);
-      
-      if (!codigo || !codigosValidos.has(codigo)) {
-        // Log para depuración de Jorge si es necesario
-        if (row.id_usuario && row.id_usuario.includes('JAMAYA')) {
-           console.log(`      DEBUG: Encontrado JAMAYA pero código ${codigo} no está en personal.`);
-        }
-        continue;
-      }
+      const codigo = extraerCodigo(row.id_usuario);
+      if (!codigo) continue;                      // No tiene formato 0100XXXX
+      if (!codigosValidos.has(codigo)) continue;  // No está en personal de Supabase
 
       registros.push({
         id_marca: row.id_marca,

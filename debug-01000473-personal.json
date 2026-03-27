@@ -1,0 +1,20 @@
+{
+  "personal": [
+    {
+      "apellidos": "AMAYA GALIANO",
+      "nombres": "JORGE ARMANDO",
+      "cargo": "TÉCNICO ELECTRÓNICO",
+      "area": "SERTEC - TECNICO",
+      "seccion": "CAD",
+      "email": "jamaya@cipsa.com.pe",
+      "foto": "JORGE_ARMANDO_AMAYA_GALIANO.jpg",
+      "codigo": "01000473",
+      "id_grupo_horario": 3,
+      "fecha_inicio_ciclo": "2026-03-16",
+      "dni": "41246069",
+      "fecha_nacimiento": "1982-05-18",
+      "fecha_ingreso": "2010-02-01",
+      "password": "41246069"
+    }
+  ]
+}

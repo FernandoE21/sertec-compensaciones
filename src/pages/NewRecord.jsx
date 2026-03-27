@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import Swal from 'sweetalert2'
 import { X, Satellite, Smartphone, Cake, AlertTriangle, Ban, CalendarCheck, Scale, TrendingUp, TrendingDown, Clock, MapPin } from 'lucide-react'
@@ -8,7 +8,10 @@ import { logBitacora } from '../utils/bitacora'
 function NewRecord() {
   const { codigo, nroRegistro } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const esEdicion = !!nroRegistro
+  const isAdminPath = location.pathname.startsWith('/admin')
+  const backUrl = isAdminPath ? `/admin/registros/${codigo}` : `/registros/${codigo}`
 
   const [trabajador, setTrabajador] = useState(null)
   const [enviando, setEnviando] = useState(false)
@@ -164,7 +167,7 @@ function NewRecord() {
     if (!esEdicion) return
     const cargarRegistro = async () => {
       const { data, error } = await supabase.from('nuevo_registro_horas').select('*').eq('nro_registro', nroRegistro).single()
-      if (error || !data) { navigate(`/registros/${codigo}`); return }
+      if (error || !data) { navigate(backUrl); return }
       if (data.tipo_solicitud === 'ONOMÁSTICO') {
         Swal.fire('No disponible', 'El onomástico se registra desde Nueva Solicitud.', 'info')
         navigate(`/nuevo-registro/${codigo}`)
@@ -631,7 +634,7 @@ function NewRecord() {
     const { error } = esEdicion ? await supabase.from('nuevo_registro_horas').update(payload).eq('nro_registro', nroRegistro) : await supabase.from('nuevo_registro_horas').insert([payload])
     setEnviando(false)
     if (error) Swal.fire('Error', error.message, 'error')
-    else { logBitacora({ usuario: codigo, tipo_usuario: 'empleado', accion: esEdicion ? 'editar' : 'crear', modulo: 'nuevo_registro_horas', descripcion: `${esEdicion ? 'Editó' : 'Creó'} solicitud ${tipoSolicitud}`, registro_id: esEdicion ? String(nroRegistro) : null, datos_nuevos: { tipo_solicitud: finalTipoSolicitud, fecha: fechaDia, inicio: realInicio, fin: realFin } }); Swal.fire({ title: '¡Procesado!', text: 'Registro guardado correctamente', icon: 'success', timer: 1500, showConfirmButton: false }); navigate(`/registros/${codigo}`) }
+    else { logBitacora({ usuario: codigo, tipo_usuario: 'empleado', accion: esEdicion ? 'editar' : 'crear', modulo: 'nuevo_registro_horas', descripcion: `${esEdicion ? 'Editó' : 'Creó'} solicitud ${tipoSolicitud}`, registro_id: esEdicion ? String(nroRegistro) : null, datos_nuevos: { tipo_solicitud: finalTipoSolicitud, fecha: fechaDia, inicio: realInicio, fin: realFin } }); Swal.fire({ title: '¡Procesado!', text: 'Registro guardado correctamente', icon: 'success', timer: 1500, showConfirmButton: false }); navigate(backUrl) }
   }
 
   if (cargandoDatos || !trabajador) return <div className="flex items-center justify-center min-h-[50vh] text-gray-400">Cargando...</div>
@@ -652,7 +655,7 @@ function NewRecord() {
             </h2>
             {esEdicion && <span className="text-xs text-gray-500 ml-7">Folio Nro. <strong>{String(nroRegistro).padStart(6, '0')}</strong></span>}
           </div>
-          <button onClick={() => navigate(`/registros/${codigo}`)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-500 hover:text-red-500 bg-gray-50 hover:bg-red-50 rounded-xl transition-colors border-none cursor-pointer">
+          <button onClick={() => navigate(backUrl)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-500 hover:text-red-500 bg-gray-50 hover:bg-red-50 rounded-xl transition-colors border-none cursor-pointer">
             <X size={16} /> Cancelar
           </button>
         </div>

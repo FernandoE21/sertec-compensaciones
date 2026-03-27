@@ -1,0 +1,277 @@
+{
+  "columns": [
+    {
+      "COLUMN_NAME": "id_marca",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "est_mrk_guardia",
+      "DATA_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "latitud",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "longitud",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "observacion",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "referencia",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "fec_marca",
+      "DATA_TYPE": "datetime"
+    },
+    {
+      "COLUMN_NAME": "id_usuario",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "fec_ingreso",
+      "DATA_TYPE": "datetime"
+    },
+    {
+      "COLUMN_NAME": "id_usr_modificacion",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "fec_modificacion",
+      "DATA_TYPE": "datetime"
+    },
+    {
+      "COLUMN_NAME": "id_usr_anulacion",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "fec_usr_anulacion",
+      "DATA_TYPE": "datetime"
+    },
+    {
+      "COLUMN_NAME": "flg_anulado",
+      "DATA_TYPE": "bit"
+    },
+    {
+      "COLUMN_NAME": "flg_usr_aprobacion",
+      "DATA_TYPE": "bit"
+    },
+    {
+      "COLUMN_NAME": "id_usr_aprobacion",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "fec_usr_aprobacion",
+      "DATA_TYPE": "datetime"
+    },
+    {
+      "COLUMN_NAME": "flg_usr_rechazo",
+      "DATA_TYPE": "bit"
+    },
+    {
+      "COLUMN_NAME": "id_usr_rechazo",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "fec_usr_rechazo",
+      "DATA_TYPE": "datetime"
+    },
+    {
+      "COLUMN_NAME": "cliente",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "otr_referencia",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "IMEI",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "FAKE_LOCATION",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "app_version",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "flg_teletrabajo",
+      "DATA_TYPE": "bit"
+    },
+    {
+      "COLUMN_NAME": "opt_almuerzo",
+      "DATA_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "flg_web",
+      "DATA_TYPE": "bit"
+    },
+    {
+      "COLUMN_NAME": "motivo_rechazo",
+      "DATA_TYPE": "varchar"
+    }
+  ],
+  "sample": [
+    {
+      "id_marca": "JAMAYA0",
+      "est_mrk_guardia": null,
+      "latitud": "-12.283243333333333",
+      "longitud": "-76.825305",
+      "observacion": "RV: IMPORTANTE: PERÚ - PROYECTO LATAM - COTIZACIÓN RADIOFRECUENCIA",
+      "referencia": "Av. Industrial, Cercado de Lima 15823, Perú",
+      "fec_marca": null,
+      "id_usuario": "0101JAMAYA",
+      "fec_ingreso": "2019-05-03T11:04:24.010Z",
+      "id_usr_modificacion": null,
+      "fec_modificacion": null,
+      "id_usr_anulacion": null,
+      "fec_usr_anulacion": null,
+      "flg_anulado": false,
+      "flg_usr_aprobacion": false,
+      "id_usr_aprobacion": null,
+      "fec_usr_aprobacion": null,
+      "flg_usr_rechazo": false,
+      "id_usr_rechazo": null,
+      "fec_usr_rechazo": null,
+      "cliente": null,
+      "otr_referencia": null,
+      "IMEI": null,
+      "FAKE_LOCATION": null,
+      "app_version": null,
+      "flg_teletrabajo": null,
+      "opt_almuerzo": null,
+      "flg_web": null,
+      "motivo_rechazo": null
+    },
+    {
+      "id_marca": "JAMAYA1",
+      "est_mrk_guardia": null,
+      "latitud": "-12.284551666666667",
+      "longitud": "-76.82385166666667",
+      "observacion": "RV: IMPORTANTE: PERÚ - PROYECTO LATAM - COTIZACIÓN RADIOFRECUENCIA - SALIDA",
+      "referencia": "Unnamed Road, Lurín 15823, Perú",
+      "fec_marca": null,
+      "id_usuario": "0101JAMAYA",
+      "fec_ingreso": "2019-05-03T12:33:51.393Z",
+      "id_usr_modificacion": null,
+      "fec_modificacion": null,
+      "id_usr_anulacion": null,
+      "fec_usr_anulacion": null,
+      "flg_anulado": false,
+      "flg_usr_aprobacion": false,
+      "id_usr_aprobacion": null,
+      "fec_usr_aprobacion": null,
+      "flg_usr_rechazo": false,
+      "id_usr_rechazo": null,
+      "fec_usr_rechazo": null,
+      "cliente": null,
+      "otr_referencia": null,
+      "IMEI": null,
+      "FAKE_LOCATION": null,
+      "app_version": null,
+      "flg_teletrabajo": null,
+      "opt_almuerzo": null,
+      "flg_web": null,
+      "motivo_rechazo": null
+    },
+    {
+      "id_marca": "JAMAYA10",
+      "est_mrk_guardia": null,
+      "latitud": "-12.12681833333333",
+      "longitud": "-76.97722166666668",
+      "observacion": "LLEGADA CLIENTE",
+      "referencia": "Jirón Morro Solar 1086, Santiago de Surco 15039, Perú",
+      "fec_marca": null,
+      "id_usuario": "0101JAMAYA",
+      "fec_ingreso": "2019-05-24T10:05:29.327Z",
+      "id_usr_modificacion": null,
+      "fec_modificacion": null,
+      "id_usr_anulacion": null,
+      "fec_usr_anulacion": null,
+      "flg_anulado": false,
+      "flg_usr_aprobacion": false,
+      "id_usr_aprobacion": null,
+      "fec_usr_aprobacion": null,
+      "flg_usr_rechazo": false,
+      "id_usr_rechazo": null,
+      "fec_usr_rechazo": null,
+      "cliente": "Prosegur",
+      "otr_referencia": "2019003028",
+      "IMEI": null,
+      "FAKE_LOCATION": null,
+      "app_version": null,
+      "flg_teletrabajo": null,
+      "opt_almuerzo": null,
+      "flg_web": null,
+      "motivo_rechazo": null
+    },
+    {
+      "id_marca": "JAMAYA100",
+      "est_mrk_guardia": null,
+      "latitud": "-11.866831666666666",
+      "longitud": "-77.07141666666666",
+      "observacion": "LLEGADA A CLIENTE",
+      "referencia": "Av Sta Josefina 657, Puente Piedra 15121, Perú",
+      "fec_marca": null,
+      "id_usuario": "0101JAMAYA",
+      "fec_ingreso": "2019-11-18T08:11:20.200Z",
+      "id_usr_modificacion": null,
+      "fec_modificacion": null,
+      "id_usr_anulacion": null,
+      "fec_usr_anulacion": null,
+      "flg_anulado": false,
+      "flg_usr_aprobacion": false,
+      "id_usr_aprobacion": null,
+      "fec_usr_aprobacion": null,
+      "flg_usr_rechazo": false,
+      "id_usr_rechazo": null,
+      "fec_usr_rechazo": null,
+      "cliente": " KIMBERLY-CLARK PERU S.R.L.",
+      "otr_referencia": "2019007005",
+      "IMEI": "359555083464511",
+      "FAKE_LOCATION": null,
+      "app_version": null,
+      "flg_teletrabajo": null,
+      "opt_almuerzo": null,
+      "flg_web": null,
+      "motivo_rechazo": null
+    },
+    {
+      "id_marca": "JAMAYA1000",
+      "est_mrk_guardia": null,
+      "latitud": "-12.00364752",
+      "longitud": "-77.08007292",
+      "observacion": "FIN DE HORAS EXTRAS",
+      "referencia": "Tupac Amaru Mz.N1 - Lt.15, Los Olivos 15302, Perú",
+      "fec_marca": "2026-03-17T23:12:25.277Z",
+      "id_usuario": "0101JAMAYA",
+      "fec_ingreso": "2026-03-17T23:12:25.277Z",
+      "id_usr_modificacion": null,
+      "fec_modificacion": null,
+      "id_usr_anulacion": null,
+      "fec_usr_anulacion": null,
+      "flg_anulado": false,
+      "flg_usr_aprobacion": false,
+      "id_usr_aprobacion": null,
+      "fec_usr_aprobacion": null,
+      "flg_usr_rechazo": false,
+      "id_usr_rechazo": null,
+      "fec_usr_rechazo": null,
+      "cliente": "CIPSA",
+      "otr_referencia": "2026001333",
+      "IMEI": "Jamaya|8ff0b488b583f10e",
+      "FAKE_LOCATION": null,
+      "app_version": "10141",
+      "flg_teletrabajo": false,
+      "opt_almuerzo": 0,
+      "flg_web": null,
+      "motivo_rechazo": null
+    }
+  ]
+}

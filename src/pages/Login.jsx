@@ -34,12 +34,14 @@ function Login() {
     }
 
     setBuscando(true)
-    // Try password field first, fallback to DNI
-    let { data, error } = await supabase.from('personal').select('*').eq('codigo', codigoLimpio).eq('password', passLimpio).single()
-    if (error || !data) {
-      const res = await supabase.from('personal').select('*').eq('codigo', codigoLimpio).eq('dni', passLimpio).single()
-      data = res.data; error = res.error
-    }
+
+    // Consulta ÚNICA y estricta a la columna password
+    let { data, error } = await supabase.from('personal')
+      .select('*')
+      .eq('codigo', codigoLimpio)
+      .eq('password', passLimpio)
+      .single()
+
     setBuscando(false)
 
     if (error || !data) {
@@ -64,7 +66,7 @@ function Login() {
       <div className="hidden lg:flex lg:w-[45%] bg-corporate-blue relative overflow-hidden flex-col justify-between p-12">
         {/* Background pattern */}
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '32px 32px' }} />
-        
+
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-corporate-green flex items-center justify-center shadow-lg">

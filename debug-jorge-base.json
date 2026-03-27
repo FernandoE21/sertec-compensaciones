@@ -1,0 +1,75 @@
+{
+  "jorgeTrakker": [
+    {
+      "nro_marcacion": 13683299,
+      "id_trabajador": "010101000473",
+      "fec_hra_marcacion": "2026-03-27T10:26:00.000Z",
+      "id_tpo_marcacion": "04",
+      "flg_app": null
+    },
+    {
+      "nro_marcacion": 13682027,
+      "id_trabajador": "010101000473",
+      "fec_hra_marcacion": "2026-03-26T17:38:00.000Z",
+      "id_tpo_marcacion": "01",
+      "flg_app": null
+    },
+    {
+      "nro_marcacion": 13681127,
+      "id_trabajador": "010101000473",
+      "fec_hra_marcacion": "2026-03-26T12:55:00.000Z",
+      "id_tpo_marcacion": "01",
+      "flg_app": null
+    },
+    {
+      "nro_marcacion": 13680953,
+      "id_trabajador": "010101000473",
+      "fec_hra_marcacion": "2026-03-26T12:18:00.000Z",
+      "id_tpo_marcacion": "01",
+      "flg_app": null
+    },
+    {
+      "nro_marcacion": 13680511,
+      "id_trabajador": "010101000473",
+      "fec_hra_marcacion": "2026-03-26T07:55:00.000Z",
+      "id_tpo_marcacion": "01",
+      "flg_app": null
+    },
+    {
+      "nro_marcacion": 13679525,
+      "id_trabajador": "010101000473",
+      "fec_hra_marcacion": "2026-03-25T17:36:00.000Z",
+      "id_tpo_marcacion": "01",
+      "flg_app": null
+    },
+    {
+      "nro_marcacion": 13678602,
+      "id_trabajador": "010101000473",
+      "fec_hra_marcacion": "2026-03-25T12:37:00.000Z",
+      "id_tpo_marcacion": "01",
+      "flg_app": null
+    },
+    {
+      "nro_marcacion": 13678425,
+      "id_trabajador": "010101000473",
+      "fec_hra_marcacion": "2026-03-25T12:10:00.000Z",
+      "id_tpo_marcacion": "01",
+      "flg_app": null
+    },
+    {
+      "nro_marcacion": 13678382,
+      "id_trabajador": "010101000473",
+      "fec_hra_marcacion": "2026-03-25T11:52:00.000Z",
+      "id_tpo_marcacion": "04",
+      "flg_app": null
+    },
+    {
+      "nro_marcacion": 13678212,
+      "id_trabajador": "010101000473",
+      "fec_hra_marcacion": "2026-03-25T09:37:00.000Z",
+      "id_tpo_marcacion": "04",
+      "flg_app": null
+    }
+  ],
+  "standardFormatSample": []
+}

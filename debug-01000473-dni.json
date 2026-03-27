@@ -1,0 +1,74 @@
+{
+  "sqlUsuarioGPS": [
+    {
+      "id_marca": "JAMAYA1007",
+      "id_usuario": "0101JAMAYA",
+      "fec_marca": "2026-03-27T09:36:34.860Z",
+      "latitud": "-12.13078678",
+      "longitud": "-76.97933051"
+    },
+    {
+      "id_marca": "JAMAYA1006",
+      "id_usuario": "0101JAMAYA",
+      "fec_marca": "2026-03-27T08:25:59.400Z",
+      "latitud": "-12.12760815",
+      "longitud": "-77.01040864"
+    },
+    {
+      "id_marca": "JAMAYA1005",
+      "id_usuario": "0101JAMAYA",
+      "fec_marca": "2026-03-27T07:56:46.677Z",
+      "latitud": "-12.0572977",
+      "longitud": "-77.0419575"
+    },
+    {
+      "id_marca": "JAMAYA1004",
+      "id_usuario": "0101JAMAYA",
+      "fec_marca": "2026-03-27T00:41:47.127Z",
+      "latitud": "-12.00368316",
+      "longitud": "-77.08005686"
+    },
+    {
+      "id_marca": "JAMAYA1003",
+      "id_usuario": "0101JAMAYA",
+      "fec_marca": "2026-03-26T20:40:55.297Z",
+      "latitud": "-12.0036666",
+      "longitud": "-77.08011042"
+    },
+    {
+      "id_marca": "JAMAYA1002",
+      "id_usuario": "0101JAMAYA",
+      "fec_marca": "2026-03-24T23:11:11.543Z",
+      "latitud": "-12.00379013",
+      "longitud": "-77.08013512"
+    },
+    {
+      "id_marca": "JAMAYA1001",
+      "id_usuario": "0101JAMAYA",
+      "fec_marca": "2026-03-24T20:06:50.810Z",
+      "latitud": "-12.00364513",
+      "longitud": "-77.08007801"
+    },
+    {
+      "id_marca": "JAMAYA1000",
+      "id_usuario": "0101JAMAYA",
+      "fec_marca": "2026-03-17T23:12:25.277Z",
+      "latitud": "-12.00364752",
+      "longitud": "-77.08007292"
+    },
+    {
+      "id_marca": "JAMAYA999",
+      "id_usuario": "0101JAMAYA",
+      "fec_marca": "2026-03-17T20:01:07.490Z",
+      "latitud": "-12.0037593",
+      "longitud": "-77.08006922"
+    },
+    {
+      "id_marca": "JAMAYA998",
+      "id_usuario": "0101JAMAYA",
+      "fec_marca": "2026-03-16T07:55:45.610Z",
+      "latitud": "-12.00771487",
+      "longitud": "-77.07722424"
+    }
+  ]
+}

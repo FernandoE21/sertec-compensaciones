@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { Users, ClipboardList, CheckCircle, XCircle, Clock, TrendingUp, ArrowRight, AlertTriangle } from 'lucide-react'
+import { obtenerLineaDesdeSeccion } from '../utils/lineas'
 
 function AdminDashboardHome() {
   const navigate = useNavigate()
@@ -12,6 +13,12 @@ function AdminDashboardHome() {
   const [porEstado, setPorEstado] = useState({ Pendiente: 0, Aprobado: 0, Rechazado: 0 })
   const [porTipo, setPorTipo] = useState([])
 
+  const rolActual = sessionStorage.getItem('admin_rol') || 'admin'
+  const esSupervisor = rolActual === 'supervisor'
+  const lineasSupervisor = esSupervisor
+    ? (JSON.parse(sessionStorage.getItem('admin_lineas') || '[]'))
+    : []
+
   useEffect(() => {
     fetchAll()
   }, [])
@@ -19,40 +26,56 @@ function AdminDashboardHome() {
   const fetchAll = async () => {
     setLoading(true)
 
-    // Personal stats
-    const { data: personal } = await supabase.from('personal').select('codigo, nombres, apellidos, seccion, cargo')
-    const totalPersonal = personal?.length || 0
+    // 1. Obtener datos base
+    const [{ data: allPersonal }, { data: allRegistros }] = await Promise.all([
+      supabase.from('personal').select('codigo, nombres, apellidos, seccion, cargo'),
+      supabase.from('registro_horas').select('*').order('created_at', { ascending: false })
+    ])
+
+    // 2. Aplicar filtros de Supervisor si corresponde
+    let personal = allPersonal || []
+    if (esSupervisor) {
+      personal = personal.filter(p => {
+        const linea = obtenerLineaDesdeSeccion(p.seccion)
+        return lineasSupervisor.includes(linea)
+      })
+    }
+    const codigosPermitidos = new Set(personal.map(p => p.codigo))
+
+    let registros = allRegistros || []
+    if (esSupervisor) {
+      registros = registros.filter(r => codigosPermitidos.has(r.codigo_trabajador))
+    }
+
+    const totalPersonal = personal.length
+    const totalRegistros = registros.length
 
     // Group by section
     const seccionMap = {}
-    personal?.forEach(p => {
+    personal.forEach(p => {
       const s = p.seccion || 'Sin sección'
       seccionMap[s] = (seccionMap[s] || 0) + 1
     })
     setPorSeccion(Object.entries(seccionMap).sort((a, b) => b[1] - a[1]))
 
-    // Registros stats
-    const { data: registros } = await supabase.from('registro_horas').select('*').order('created_at', { ascending: false })
-    const totalRegistros = registros?.length || 0
-
     // By status
     const estadoMap = { Pendiente: 0, Aprobado: 0, Rechazado: 0 }
-    registros?.forEach(r => {
+    registros.forEach(r => {
       if (estadoMap[r.estado] !== undefined) estadoMap[r.estado]++
     })
     setPorEstado(estadoMap)
 
     // By type
     const tipoMap = {}
-    registros?.forEach(r => {
+    registros.forEach(r => {
       const t = r.tipo_solicitud || 'Sin tipo'
       tipoMap[t] = (tipoMap[t] || 0) + 1
     })
     setPorTipo(Object.entries(tipoMap).sort((a, b) => b[1] - a[1]).slice(0, 8))
 
     // Recent 5
-    const recentWithNames = (registros || []).slice(0, 8).map(r => {
-      const p = personal?.find(pe => pe.codigo === r.codigo_trabajador)
+    const recentWithNames = registros.slice(0, 8).map(r => {
+      const p = personal.find(pe => pe.codigo === r.codigo_trabajador)
       return { ...r, nombre: p ? `${p.apellidos}, ${p.nombres}` : r.codigo_trabajador }
     })
     setRecientes(recentWithNames)
@@ -60,7 +83,7 @@ function AdminDashboardHome() {
     // This month stats
     const now = new Date()
     const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-    const registrosMes = registros?.filter(r => r.fecha_solicitud?.startsWith(mesActual)) || []
+    const registrosMes = registros.filter(r => r.fecha_solicitud?.startsWith(mesActual))
 
     setStats({
       totalPersonal,

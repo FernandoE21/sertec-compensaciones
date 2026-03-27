@@ -1,0 +1,35 @@
+{
+  "res": [
+    {
+      "id_marca": "01001059579",
+      "est_mrk_guardia": null,
+      "latitud": "-12.02718012",
+      "longitud": "-77.02809401",
+      "observacion": "ENTRADA - REMOTO",
+      "referencia": "Real Audiencia 526, Cercado de Lima 15094, Perú",
+      "fec_marca": "2021-02-01T08:19:06.147Z",
+      "id_usuario": "010101001059",
+      "fec_ingreso": "2021-02-01T08:19:06.147Z",
+      "id_usr_modificacion": null,
+      "fec_modificacion": null,
+      "id_usr_anulacion": null,
+      "fec_usr_anulacion": null,
+      "flg_anulado": false,
+      "flg_usr_aprobacion": false,
+      "id_usr_aprobacion": null,
+      "fec_usr_aprobacion": null,
+      "flg_usr_rechazo": false,
+      "id_usr_rechazo": null,
+      "fec_usr_rechazo": null,
+      "cliente": "TEAL",
+      "otr_referencia": "2021000577",
+      "IMEI": "351842095739736",
+      "FAKE_LOCATION": "",
+      "app_version": "10133",
+      "flg_teletrabajo": null,
+      "opt_almuerzo": null,
+      "flg_web": null,
+      "motivo_rechazo": null
+    }
+  ]
+}

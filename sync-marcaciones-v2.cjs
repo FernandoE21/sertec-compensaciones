@@ -20,7 +20,10 @@ const SUPABASE_KEY = 'sb_publishable_oCt_y46aZ4iTg81CTKb3YQ_tLG_K-aA'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 function sqlIdToSupabase(id) {
-  return id ? id.trim().substring(4) : null
+  if (!id) return null;
+  const trimmed = id.trim();
+  // Extraer los últimos 8 caracteres (ej: 010101000473 -> 01000473)
+  return trimmed.length >= 8 ? trimmed.slice(-8) : trimmed;
 }
 
 async function sincronizar() {
@@ -36,9 +39,8 @@ async function sincronizar() {
     const codigosValidos = new Set((personal || []).map(p => p.codigo))
     console.log(`   → ${codigosValidos.size} empleados registrados`)
 
-    // Consultar marcas TRAKKER desde el 21 de enero 2026 (sin truncar o agrupar)
-    // flg_app IS NULL o 0 = TRAKKER
-    console.log('🔍 Consultando MARCACION_BASE (TRAKKER) últimos 7 días...')
+    // Consultar marcas TRAKKER sin filtros de tipo (traer F9, Comision, etc.)
+    console.log('🔍 Consultando MARCACION_BASE (Todas las marcas) últimos 7 días...')
     var res = await pool.request().query(`
       SELECT 
         nro_marcacion,

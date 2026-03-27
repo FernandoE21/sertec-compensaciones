@@ -5,57 +5,7 @@ import Swal from 'sweetalert2'
 import { Search, UserPlus, Settings, Save, CheckCircle, X, ExternalLink, Pencil, KeyRound, Trash2, ShieldAlert } from 'lucide-react'
 import { logBitacora } from '../utils/bitacora'
 
-const LINEAS_DISPONIBLES = [
-  'CIL',
-  'CELSA',
-  'INSPECCION',
-  'NESTLE',
-  'CAD',
-  'CPEI',
-  'SERTEC',
-  'PPL LINDLEY',
-  'SPSA',
-  'BACKUS'
-]
-
-function escapeRegExp(text) {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-function normalizarTexto(value) {
-  if (!value) return ''
-  return value
-    .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-function obtenerLineaDesdeSeccion(seccionRaw) {
-  const seccion = normalizarTexto(seccionRaw)
-  if (!seccion) return ''
-
-  // Agrupar variantes (p.ej. "SPSA CORRECTIVO") bajo la línea "SPSA"
-  if (seccion.includes('SPSA')) return 'SPSA'
-  if (seccion.includes('LINDLEY')) return 'PPL LINDLEY'
-
-  for (const linea of LINEAS_DISPONIBLES) {
-    const lineaNorm = normalizarTexto(linea)
-
-    if (lineaNorm.includes(' ')) {
-      if (seccion.includes(lineaNorm)) return linea
-      continue
-    }
-
-    const re = new RegExp(`\\b${escapeRegExp(lineaNorm)}\\b`)
-    if (re.test(seccion)) return linea
-  }
-
-  return ''
-}
+import { obtenerLineaDesdeSeccion, LINEAS_DISPONIBLES } from '../utils/lineas'
 
 function AdminDashboard() {
   const navigate = useNavigate()
@@ -432,7 +382,7 @@ function AdminDashboard() {
                 </td>
                 <td className="py-3 px-4 text-center">
                   <div className="flex gap-2 justify-center">
-                    {esSuperAdmin && (
+                    {(esSuperAdmin || esSupervisor) && (
                       <button
                         onClick={() => navigate(`/admin/editar-personal/${p.codigo}`)}
                         className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white rounded-lg text-[11px] font-bold transition-all border-none cursor-pointer"
@@ -446,7 +396,7 @@ function AdminDashboard() {
                     >
                       Registros <ExternalLink size={12} />
                     </button>
-                    {esSuperAdmin && (
+                    {(esSuperAdmin || esSupervisor) && (
                       <button
                         onClick={() => handleCambiarPassword(p)}
                         title="Cambiar Contraseña"

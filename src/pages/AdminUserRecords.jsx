@@ -3,8 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase, supabaseKey, supabaseUrl } from '../supabaseClient'
 import * as XLSX from 'xlsx'
 import Swal from 'sweetalert2'
-import { ArrowLeft, ChevronDown, FileSpreadsheet, FilterX, Info, Pencil, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ChevronDown, FileSpreadsheet, FilterX, Info, Pencil, Trash2, X, Clock, Satellite, Smartphone, MapPin } from 'lucide-react'
 import { logBitacora } from '../utils/bitacora'
+import { obtenerLineaDesdeSeccion } from '../utils/lineas'
 
 function AdminUserRecords() {
   const { codigo } = useParams()
@@ -16,9 +17,20 @@ function AdminUserRecords() {
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
   const [registroDetalle, setRegistroDetalle] = useState(null)
+  const [horarioDetalle, setHorarioDetalle] = useState('')
+  const [marcasDetalle, setMarcasDetalle] = useState([])
+  const [cargandoHorario, setCargandoHorario] = useState(false)
+  const [comentarioSup, setComentarioSup] = useState('')
+  const [guardandoComentario, setGuardandoComentario] = useState(false)
   const [estadoMenu, setEstadoMenu] = useState(null)
   const estadoMenuRef = useRef(null)
   const [estadoEmailModal, setEstadoEmailModal] = useState(null)
+
+  const rolActual = sessionStorage.getItem('admin_rol') || 'admin'
+  const esSupervisor = rolActual === 'supervisor'
+  const lineasSupervisor = esSupervisor
+    ? (JSON.parse(sessionStorage.getItem('admin_lineas') || '[]'))
+    : []
 
   const ESTADOS = ['Pendiente', 'Aprobado', 'Rechazado', 'Observado']
 
@@ -58,16 +70,110 @@ function AdminUserRecords() {
 
   useEffect(() => {
     const fetchTrabajador = async () => {
-      const { data } = await supabase.from('personal').select('*').eq('codigo', codigo).single()
-      if (data) setTrabajadorInfo(data)
+      const { data, error } = await supabase.from('personal').select('*').eq('codigo', codigo).single()
+      if (error || !data) {
+        Swal.fire('Error', 'No se encontró la información del trabajador.', 'error')
+        navigate('/admin-panel')
+        return
+      }
+
+      // Validación de Seguridad para Supervisor
+      if (esSupervisor) {
+        const lineaTrabajador = obtenerLineaDesdeSeccion(data.seccion)
+        if (!lineasSupervisor.includes(lineaTrabajador)) {
+          Swal.fire('Acceso Denegado', 'No tienes permisos para ver registros de esta línea de trabajo.', 'error')
+          navigate('/admin-panel')
+          return
+        }
+      }
+
+      setTrabajadorInfo(data)
     }
 
     fetchTrabajador()
-  }, [codigo])
+  }, [codigo, esSupervisor])
 
   useEffect(() => {
-    fetchRegistros()
-  }, [codigo, desde, hasta])
+    if (trabajadorInfo) {
+      fetchRegistros()
+    }
+  }, [codigo, desde, hasta, trabajadorInfo])
+
+  // Cargar horario programado y marcas cuando se abre el detalle
+  useEffect(() => {
+    if (!registroDetalle || !codigo) {
+      setHorarioDetalle('')
+      setMarcasDetalle([])
+      return
+    }
+
+    const fetchComplementarios = async () => {
+      setCargandoHorario(true)
+      try {
+        const d = new Date(registroDetalle.fecha_hora_inicio)
+        const fecha = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        
+        // 1. Horario Programado
+        const { data: hRes } = await supabase.rpc('obtener_horario_por_fecha', { p_codigo: codigo, p_fecha: fecha })
+        if (hRes && hRes.length > 0) {
+          const { hora_entrada, hora_salida } = hRes[0]
+          setHorarioDetalle(hora_entrada && hora_salida ? `${hora_entrada.slice(0, 5)} - ${hora_salida.slice(0, 5)}` : 'Día Libre')
+        } else {
+          setHorarioDetalle('Día Libre')
+        }
+
+        // 2. Marcas (Lógica idéntica a NewRecord.jsx)
+        let marcas = []
+        const { data: dIndiv } = await supabase.from('marcaciones_individuales').select('hora, tipo, nro_marcacion').eq('codigo_trabajador', codigo).eq('fecha', fecha).order('hora', { ascending: true })
+        if (dIndiv) {
+          dIndiv.forEach(m => marcas.push({ hora: m.hora.slice(0, 5), dispositivo: m.tipo, nro_marcacion: m.nro_marcacion }))
+        }
+
+        const { data: dGps } = await supabase.from('marcaciones_gps').select('id_marca, fecha_marca, latitud, longitud').eq('codigo_trabajador', codigo).gte('fecha_marca', `${fecha}T00:00:00`).lte('fecha_marca', `${fecha}T23:59:59`)
+        if (dGps) {
+          dGps.forEach(m => {
+            const h = new Date(m.fecha_marca).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' })
+            marcas.push({ hora: h, dispositivo: 'APP', lat: m.latitud, lng: m.longitud, idMarca: m.id_marca })
+          })
+        }
+
+        const unicasMap = new Map()
+        marcas.forEach(m => {
+          const key = `0|${m.hora}`
+          if (!unicasMap.has(key) || m.idMarca) unicasMap.set(key, m)
+        })
+        const unicas = Array.from(unicasMap.values()).sort((a, b) => a.hora.localeCompare(b.hora))
+        setMarcasDetalle(unicas)
+
+      } catch (err) {
+        console.error('Error fetching data:', err)
+        setHorarioDetalle('No disponible')
+      } finally {
+        setCargandoHorario(false)
+      }
+    }
+
+    fetchComplementarios()
+  }, [registroDetalle, codigo])
+
+  useEffect(() => {
+    if (registroDetalle) setComentarioSup(registroDetalle.comentario_supervisor || '')
+  }, [registroDetalle])
+
+  const guardarComentario = async () => {
+    if (!registroDetalle) return
+    setGuardandoComentario(true)
+    try {
+      const tabla = registroDetalle._origen === 'registro' ? 'nuevo_registro_horas' : 'registro_horas'
+      const { error } = await supabase.from(tabla).update({ comentario_supervisor: comentarioSup }).eq('nro_registro', registroDetalle.nro_registro)
+      if (error) throw error
+      Swal.fire({ title: '¡Guardado!', text: 'Comentario actualizado.', icon: 'success', timer: 1500, showConfirmButton: false })
+      setRegistros(prev => prev.map(r => r.nro_registro === registroDetalle.nro_registro ? { ...r, comentario_supervisor: comentarioSup } : r))
+      setRegistroDetalle(prev => ({ ...prev, comentario_supervisor: comentarioSup }))
+    } catch (err) {
+      console.error(err); Swal.fire('Error', 'No se pudo guardar.', 'error')
+    } finally { setGuardandoComentario(false) }
+  }
 
   const limpiarFechas = () => { setDesde(''); setHasta('') }
 
@@ -276,6 +382,41 @@ function AdminUserRecords() {
     }
   }
 
+  const handleEliminarRegistro = async (reg) => {
+    const { isConfirmed } = await Swal.fire({
+      title: '¿Eliminar registro?',
+      text: "Esta acción no se puede deshacer.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    })
+
+    if (!isConfirmed) return
+
+    const dbTable = reg?._origen === 'registro' ? 'nuevo_registro_horas' : 'registro_horas'
+    const { error } = await supabase.from(dbTable).delete().eq('id', reg.id)
+
+    if (error) {
+      Swal.fire('Error', error.message, 'error')
+    } else {
+      setRegistros(prev => prev.filter(r => !(r._origen === reg._origen && r.id === reg.id)))
+      if (registroDetalle && registroDetalle._origen === reg._origen && registroDetalle.id === reg.id) setRegistroDetalle(null)
+      const adminUsuario = sessionStorage.getItem('admin_usuario') || 'admin'
+      logBitacora({
+        usuario: adminUsuario,
+        tipo_usuario: 'admin',
+        accion: 'delete',
+        modulo: dbTable,
+        descripcion: `Eliminó ${reg._origen === 'registro' ? 'registro' : 'solicitud'} de ${codigo} (${reg?.tipo_solicitud || ''})`,
+        registro_id: String(reg?.nro_registro ?? reg?.id)
+      })
+      Swal.fire('Eliminado', 'El registro ha sido eliminado.', 'success')
+    }
+  }
+
   const openEstadoMenu = (reg, buttonEl) => {
     const key = `${reg._origen}-${reg.id}`
     if (estadoMenu?.key === key) {
@@ -447,7 +588,7 @@ function AdminUserRecords() {
         </div>
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 border-l-4 border-l-corporate-blue">
           <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider">Saldo Ideal (si aprueban todo)</span>
-          <div className={`text-2xl md:text-3xl font-black mt-1 ${resumenIdeal.neto >= 0 ? 'text-blue-600' : 'text-red-700'}`}>
+          <div className="text-2xl md:text-3xl font-black mt-1 text-slate-900">
             {resumenIdeal.neto >= 0 ? '+' : '-'}{fmt(resumenIdeal.neto)}
           </div>
         </div>
@@ -548,26 +689,23 @@ function AdminUserRecords() {
                         <Info size={15} />
                       </button>
 
-                      {reg.estado === 'Pendiente' && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => navigate(reg._origen === 'registro' ? `/admin/editar-nuevo-registro/${codigo}/${reg.nro_registro}` : `/admin/editar-registro/${codigo}/${reg.nro_registro}`)}
-                            title="Editar registro"
-                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors border-none cursor-pointer"
-                          >
-                            <Pencil size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            disabled
-                            title="Solo el usuario puede eliminar"
-                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-500 transition-colors border-none opacity-40 cursor-not-allowed"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => navigate(reg._origen === 'registro' ? `/admin/editar-nuevo-registro/${codigo}/${reg.nro_registro}` : `/admin/editar-registro/${codigo}/${reg.nro_registro}`)}
+                        title="Editar registro"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors border-none cursor-pointer"
+                      >
+                        <Pencil size={14} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleEliminarRegistro(reg)}
+                        title="Eliminar registro"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors border-none cursor-pointer"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -715,6 +853,21 @@ function AdminUserRecords() {
                     <div className="text-[10px] font-extrabold text-corporate-blue uppercase tracking-wider">Requerimiento</div>
                     <div className="mt-1 text-sm text-gray-700">{registroDetalle.requerimiento || 'N/A'}</div>
                   </div>
+                  <div className="col-span-2">
+                    <div className="text-[10px] font-extrabold text-corporate-blue uppercase tracking-wider">Horario Programado</div>
+                    <div className="mt-1 text-sm font-bold text-gray-800">
+                      {cargandoHorario ? (
+                        <span className="text-gray-400 italic font-normal flex items-center gap-1.5 animate-pulse">
+                          <span className="w-1.5 h-1.5 bg-gray-300 rounded-full"></span>
+                          Cargando horario...
+                        </span>
+                      ) : (
+                        <span className={horarioDetalle === 'Día Libre' ? 'text-blue-600' : ''}>
+                          {horarioDetalle}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   <div>
                     <div className="text-[10px] font-extrabold text-corporate-blue uppercase tracking-wider">Ingreso</div>
                     <div className="mt-1 text-sm text-gray-700">{new Date(registroDetalle.ingreso || registroDetalle.fecha_hora_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
@@ -725,6 +878,69 @@ function AdminUserRecords() {
                   </div>
                 </div>
               </div>
+
+               {/* Historial de Marcaciones */}
+               <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
+                 <div className="text-[10px] font-extrabold text-corporate-blue uppercase tracking-wider mb-3">Historial de Marcaciones (Marca APP/GPS)</div>
+                 {cargandoHorario ? (
+                   <div className="text-xs text-gray-400 italic animate-pulse">Buscando marcas...</div>
+                 ) : marcasDetalle?.length === 0 ? (
+                   <div className="text-xs text-gray-400 italic">No hay registros de marcación individual para esta fecha.</div>
+                 ) : (
+                   <div className="space-y-2">
+                     {marcasDetalle?.map((m, idx) => (
+                       <div key={idx} className="flex items-center justify-between text-xs p-2.5 bg-white rounded-xl border border-gray-100 shadow-sm">
+                         <div className="flex items-center gap-2">
+                           <span className="font-mono font-bold bg-slate-50 px-2 py-0.5 rounded border border-slate-100">{m.hora}</span>
+                           <span className="font-semibold text-gray-500 flex items-center gap-1 uppercase">
+                             {m.dispositivo === 'TRAKKER' ? <Satellite size={12} className="text-gray-400" /> : <Smartphone size={12} className="text-gray-400" />}
+                             {m.dispositivo}
+                           </span>
+                         </div>
+                         {m.lat && m.lng ? (
+                           <a 
+                             href={`https://maps.google.com/?q=${m.lat},${m.lng}`} 
+                             target="_blank" 
+                             rel="noopener noreferrer"
+                             className="flex items-center gap-1.5 font-bold text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 px-2 py-1 rounded-lg"
+                             title="Ver ubicación exacta"
+                           >
+                             <MapPin size={14} /> GPS
+                           </a>
+                        ) : (
+                          <span className="text-[10px] text-gray-400 font-medium italic">Sin coordenadas</span>
+                        )}
+                       </div>
+                     ))}
+                   </div>
+                 )}
+               </div>
+               
+               {/* Comentario Supervisor */}
+               <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4">
+                 <div className="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                   💬 Comentarios del Supervisor
+                 </div>
+                 <textarea 
+                   className="w-full min-h-[80px] p-3 text-sm bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-gray-700 placeholder:text-gray-400 placeholder:italic transition-all resize-none"
+                   placeholder="Escribe aquí observaciones, motivos de rechazo o indicaciones para el técnico..."
+                   value={comentarioSup}
+                   onChange={e => setComentarioSup(e.target.value)}
+                 />
+                 <div className="mt-2 flex justify-end">
+                   <button 
+                     onClick={guardarComentario}
+                     disabled={guardandoComentario || comentarioSup === (registroDetalle.comentario_supervisor || '')}
+                     className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                       guardandoComentario || comentarioSup === (registroDetalle.comentario_supervisor || '')
+                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                       : 'bg-amber-500 text-white hover:bg-amber-600 border-none cursor-pointer'
+                     }`}
+                   >
+                     {guardandoComentario ? 'Guardando...' : '💾 Guardar Comentario'}
+                   </button>
+                 </div>
+               </div>
 
               {/* Motivo */}
               <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4">

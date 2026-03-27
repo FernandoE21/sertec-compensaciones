@@ -19,8 +19,8 @@ Usuario estándar del sistema. Trabajador de CIPSA que necesita registrar sus ho
 #### ✅ Puede
 - Ver sus propios registros de horas
 - Crear nuevas solicitudes de compensación
-- Editar sus solicitudes en estado "Pendiente" o "Rechazado"
-- Eliminar sus solicitudes en estado "Pendiente" o "Rechazado"
+- Editar sus solicitudes en estado "Pendiente", "Rechazado" u "Observado"
+- Eliminar sus solicitudes en estado "Pendiente", "Rechazado" u "Observado"
 - Filtrar sus registros por rango de fechas
 - Exportar sus registros a Excel
 - Ver su balance de horas (favor, contra, neto)
