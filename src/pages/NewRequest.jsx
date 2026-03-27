@@ -260,15 +260,14 @@ function NewRequest() {
         // Trakker
         const { data: dNew, error: eNew } = await supabase
           .from('marcaciones_individuales')
-          .select('hora')
+          .select('hora, tipo')
           .eq('codigo_trabajador', codigo)
           .eq('fecha', fechaDia)
-          .eq('tipo', 'TRAKKER')
           .order('hora', { ascending: true })
 
         if (dNew && dNew.length > 0) {
           dNew.forEach(m => {
-            marcas.push({ hora: m.hora.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 0 })
+            marcas.push({ hora: m.hora.slice(0, 5), dispositivo: m.tipo, offsetDias: 0 })
           })
           setMarcaCargada(true)
         } else {
@@ -307,10 +306,14 @@ function NewRequest() {
           })
         }
 
-        // Sort and distinct
-        marcas.sort((a, b) => a.offsetDias - b.offsetDias || a.hora.localeCompare(b.hora))
-        const marcaKey = (m) => `${m.offsetDias ?? 0}|${m.dispositivo}|${m.hora}|${m.idMarca ?? ''}`
-        const unicas = marcas.filter((m, index, self) => index === self.findIndex((t) => marcaKey(t) === marcaKey(m)))
+        const unicasMap = new Map()
+        marcas.forEach(m => {
+          const key = `${m.offsetDias ?? 0}|${m.hora}`
+          if (!unicasMap.has(key) || m.idMarca) {
+            unicasMap.set(key, m)
+          }
+        })
+        const unicas = Array.from(unicasMap.values()).sort((a, b) => a.offsetDias - b.offsetDias || a.hora.localeCompare(b.hora))
         setTodasLasMarcas(unicas)
 
         if (habilitaMarcasSiguienteDia) {
@@ -319,15 +322,14 @@ function NewRequest() {
 
           const { data: ndNew } = await supabase
             .from('marcaciones_individuales')
-            .select('hora')
+            .select('hora, tipo')
             .eq('codigo_trabajador', codigo)
             .eq('fecha', fechaSiguiente)
-            .eq('tipo', 'TRAKKER')
             .order('hora', { ascending: true })
 
           if (ndNew && ndNew.length > 0) {
             ndNew.forEach(m => {
-              marcasNext.push({ hora: m.hora.slice(0, 5), dispositivo: 'TRAKKER', offsetDias: 1 })
+              marcasNext.push({ hora: m.hora.slice(0, 5), dispositivo: m.tipo, offsetDias: 1 })
             })
           } else {
             const { data: nd1, error: ne1 } = await supabase.from('marcaciones').select('hora_ingreso, hora_salida').eq('codigo_trabajador', codigo).eq('fecha', fechaSiguiente).single()
@@ -358,9 +360,15 @@ function NewRequest() {
             })
           }
 
-          marcasNext.sort((a, b) => a.hora.localeCompare(b.hora))
-          const unicasNext = marcasNext.filter((m, index, self) => index === self.findIndex((t) => marcaKey(t) === marcaKey(m)))
-          setMarcasDiaSiguiente(unicasNext)
+          const unicasNextMap = new Map()
+          marcasNext.forEach(m => {
+            const key = `${m.offsetDias ?? 1}|${m.hora}`
+            if (!unicasNextMap.has(key) || m.idMarca) {
+              unicasNextMap.set(key, m)
+            }
+          })
+          const unicasSiguiente = Array.from(unicasNextMap.values()).sort((a, b) => a.offsetDias - b.offsetDias || a.hora.localeCompare(b.hora))
+          setTodasLasMarcasSiguienteDia(unicasSiguiente)
         } else {
           setMarcasDiaSiguiente([])
           setMarcasExtraVisibles(0)

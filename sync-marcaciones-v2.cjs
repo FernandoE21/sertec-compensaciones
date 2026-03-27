@@ -45,10 +45,10 @@ async function sincronizar() {
         id_trabajador,
         CONVERT(varchar, fec_hra_marcacion, 23) as fecha,
         CONVERT(varchar, fec_hra_marcacion, 108) as hora,
-        id_tpo_marcacion
+        id_tpo_marcacion,
+        flg_app
       FROM MARCACION_BASE
       WHERE flg_anulado = 0 
-        AND (flg_app IS NULL OR flg_app = 0)
         AND fec_hra_marcacion >= DATEADD(day, -7, GETDATE())
     `)
 
@@ -67,7 +67,7 @@ async function sincronizar() {
             codigo_trabajador: codigo,
             fecha: row.fecha,
             hora: row.hora,
-            tipo: 'TRAKKER',
+            tipo: row.flg_app ? 'APP' : 'TRAKKER',
             id_tpo_marcacion: row.id_tpo_marcacion
         })
     }

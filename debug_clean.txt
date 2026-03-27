@@ -1,0 +1,70 @@
+1. Supabase personal...
+personal: OK
+
+2. Supabase marcaciones_individuales...
+marcaciones_individuales: 2 regs
+
+3. SQL Server...
+SQL: 10
+[
+  {
+    "nro_marcacion": 13673640,
+    "fec_hra_marcacion": "2026-03-20T18:16:17.950Z",
+    "id_tpo_marcacion": "01",
+    "id_trabajador": "010101000831"
+  },
+  {
+    "nro_marcacion": 13673641,
+    "fec_hra_marcacion": "2026-03-20T08:39:56.700Z",
+    "id_tpo_marcacion": "01",
+    "id_trabajador": "010101000831"
+  },
+  {
+    "nro_marcacion": 13669501,
+    "fec_hra_marcacion": "2026-03-19T17:39:39.957Z",
+    "id_tpo_marcacion": "01",
+    "id_trabajador": "010101000831"
+  },
+  {
+    "nro_marcacion": 13669502,
+    "fec_hra_marcacion": "2026-03-19T08:01:52.970Z",
+    "id_tpo_marcacion": "01",
+    "id_trabajador": "010101000831"
+  },
+  {
+    "nro_marcacion": 13666983,
+    "fec_hra_marcacion": "2026-03-18T18:10:54.120Z",
+    "id_tpo_marcacion": "01",
+    "id_trabajador": "010101000831"
+  },
+  {
+    "nro_marcacion": 13666984,
+    "fec_hra_marcacion": "2026-03-18T08:00:54.700Z",
+    "id_tpo_marcacion": "01",
+    "id_trabajador": "010101000831"
+  },
+  {
+    "nro_marcacion": 13667107,
+    "fec_hra_marcacion": "2026-03-17T16:07:00.000Z",
+    "id_tpo_marcacion": "02",
+    "id_trabajador": "010101000831"
+  },
+  {
+    "nro_marcacion": 13667106,
+    "fec_hra_marcacion": "2026-03-17T15:26:00.000Z",
+    "id_tpo_marcacion": "02",
+    "id_trabajador": "010101000831"
+  },
+  {
+    "nro_marcacion": 13674473,
+    "fec_hra_marcacion": "2026-03-17T15:00:57.777Z",
+    "id_tpo_marcacion": "01",
+    "id_trabajador": "010101000831"
+  },
+  {
+    "nro_marcacion": 13673682,
+    "fec_hra_marcacion": "2026-03-17T08:32:46.583Z",
+    "id_tpo_marcacion": "01",
+    "id_trabajador": "010101000831"
+  }
+]
